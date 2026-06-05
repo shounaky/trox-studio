@@ -136,8 +136,9 @@ const TABS = ["Dashboard", "Create", "Posts", "Coach"];
 const channelLabel = (id) => CHANNELS.find((c) => c.id === id)?.label || id;
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const BRAND_KB = `DEEP BRAND KNOWLEDGE (always honor this — from troxcreations.com):
-Trox Creations makes PREMIUM HANDCRAFTED notebooks & journals — luxury keepsakes, not ordinary stationery. Founder: Benjamin. Based in Navi Mumbai, India. Instagram: @troxcreations.
+const BRAND_KB = `DEEP BRAND KNOWLEDGE (always honor this — from troxcreations.com & @troxcreations Instagram):
+Trox Creations makes PREMIUM HANDCRAFTED notebooks & journals — luxury keepsakes, not ordinary stationery. Founder: Benjamin. Based in Navi Mumbai, India. Instagram: @troxcreations (9,100+ followers, 37 posts).
+Official Instagram bio: "Let your creativity flow and make your mark with a book that is as unique as you are. Discover the joy of personalised creation today!"
 Three collections:
 - LEGACY — timeless journals for your enduring life stories.
 - LIFE PILLAR — a dedicated journal for each pillar of life.
@@ -154,7 +155,7 @@ const TROX_DEFAULT = {
   sells: "Premium handcrafted notebooks & journals — Legacy, Life Pillar & personalized Zodiac collections, plus custom keepsakes.",
   audience: "Thoughtful people 22-45 who love handmade, meaningful objects; journalers; and gift-buyers seeking something heartfelt & personal (esp. birthdays & anniversaries).",
   voice: "Premium, soulful, warm, reflective, elegant. Quiet luxury — never loud or salesy. Celebrates craft and self-discovery.",
-  goal: "Grow @troxcreations to +3,000 organic followers; reach new gift-buyers and journaling lovers.",
+  goal: "Grow @troxcreations from 9,107 to 12,000+ organic followers; reach new gift-buyers and journaling lovers in India and beyond.",
 };
 
 async function callClaude(prompt) {
@@ -195,7 +196,7 @@ export default function TroxStudio() {
 
   const [playbook, setPlaybook] = useState("");
   const [posts, setPosts] = useState([]);
-  const [followers, setFollowers] = useState({ start: "", now: "" });
+  const [followers, setFollowers] = useState({ start: "9107", now: "9107" });
 
   const [tab, setTab] = useState("Dashboard");
   const [channel, setChannel] = useState("instagram");
