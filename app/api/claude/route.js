@@ -7,8 +7,12 @@ export async function POST(request) {
     const { prompt } = await request.json();
     if (!prompt) return Response.json({ error: "No prompt provided" }, { status: 400 });
 
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return Response.json({ error: "ANTHROPIC_API_KEY is not set. Add it in Vercel → Project Settings → Environment Variables." }, { status: 500 });
+    }
+
     const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-opus-4-5",
       max_tokens: 1000,
       messages: [{ role: "user", content: prompt }],
     });
