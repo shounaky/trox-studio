@@ -2,12 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 
-/* ============================================================
-   TROX CREATIONS — AI Social Media Manager
-   Premium handcrafted journals · Instagram + Pinterest
-   Learns from every post · Goal: +3,000 organic followers
-   ============================================================ */
-
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Mulish:wght@400;500;600;700;800&display=swap');
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -57,6 +51,7 @@ textarea.bw-input { resize:vertical; min-height:78px; width:100%; }
 .bw-btn:disabled { opacity:.5; cursor:wait; transform:none; }
 .bw-btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--gold-soft); box-shadow:none; }
 .bw-btn.ghost:hover { background:var(--card-2); }
+.bw-btn.sm { padding:9px 16px; font-size:13px; }
 
 .bw-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
 @media (max-width:680px){ .bw-grid { grid-template-columns:1fr; } }
@@ -124,38 +119,84 @@ textarea.bw-input { resize:vertical; min-height:78px; width:100%; }
 .bw-min:focus { outline:none; border-color:var(--blue); }
 .bw-insight { margin-top:11px; font-size:12.5px; color:var(--blue-deep); background:#eaf1fc; border:1px solid #d3e0f6; border-radius:10px; padding:11px 13px; line-height:1.5; font-weight:600; }
 .bw-postbody { font-size:12px; color:var(--ink-2); white-space:pre-wrap; max-height:88px; overflow:hidden; margin-top:8px; line-height:1.5; }
+
+/* Competition tab */
+.bw-comp-add { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.bw-comp-add .bw-input { max-width:300px; }
+.bw-compgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+@media (max-width:760px){ .bw-compgrid { grid-template-columns:1fr 1fr; } }
+@media (max-width:480px){ .bw-compgrid { grid-template-columns:1fr; } }
+.bw-compcard { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px; animation:rise .35s ease backwards; position:relative; }
+.bw-compcard .handle { font-size:11px; font-weight:800; color:var(--blue); letter-spacing:.3px; margin-bottom:3px; }
+.bw-compcard .name { font-family:'Fraunces'; font-weight:600; font-size:16px; color:var(--ink); margin-bottom:8px; line-height:1.2; }
+.bw-compstats { display:flex; gap:14px; margin-bottom:8px; }
+.bw-compstat { text-align:center; }
+.bw-compstat .val { font-family:'Fraunces'; font-weight:600; font-size:18px; color:var(--ink); }
+.bw-compstat .lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; font-weight:700; }
+.bw-compbio { font-size:11.5px; color:var(--ink-2); line-height:1.45; margin-bottom:10px; font-style:italic; border-left:2px solid var(--line); padding-left:9px; }
+.bw-comperr { font-size:11px; color:var(--rose); margin-bottom:8px; }
+.bw-compfooter { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
+.bw-comptime { font-size:10px; color:var(--muted); }
+.bw-compbtns { display:flex; gap:6px; }
+.bw-compcard.loading { opacity:.6; }
+.bw-gap-section { margin-top:8px; }
+.bw-gap-section h3 { font-family:'Fraunces'; font-weight:600; font-size:18px; margin-bottom:6px; }
+.bw-gap-section .sub { font-size:12px; color:var(--ink-2); margin-bottom:14px; }
 `;
 
 const CHANNELS = [{ id: "instagram", label: "Instagram" }, { id: "pinterest", label: "Pinterest" }];
 const FORMATS = { instagram: ["Reel", "Carousel", "Post", "Story"], pinterest: ["Pin", "Idea Pin"] };
-const COLLECTIONS = ["General brand", "Legacy", "Life Pillar", "Zodiac"];
+const COLLECTIONS = ["General brand", "Legacy", "Life Pillar", "Zodiac", "VMKG Edition"];
 const PILLARS = ["Relationships", "Work & Education", "Health", "Wealth", "Self-Awareness"];
 const SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"];
-const ANGLES = ["Any angle", "Self-discovery", "Gifting", "Craftsmanship", "Behind the scenes", "Customer story", "Festive / occasion"];
-const TABS = ["Dashboard", "Create", "Posts", "Coach"];
+const ANGLES = ["Any angle", "Self-discovery", "Gifting", "Craftsmanship", "Behind the scenes", "Founder story", "Customer story", "Festive / occasion", "Philosophy & reflection"];
+const TABS = ["Dashboard", "Create", "Posts", "Competition", "Coach"];
 const channelLabel = (id) => CHANNELS.find((c) => c.id === id)?.label || id;
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const BRAND_KB = `DEEP BRAND KNOWLEDGE (always honor this — from troxcreations.com & @troxcreations Instagram):
-Trox Creations makes PREMIUM HANDCRAFTED notebooks & journals — luxury keepsakes, not ordinary stationery. Founder: Benjamin. Based in Navi Mumbai, India. Instagram: @troxcreations (9,100+ followers, 37 posts).
-Official Instagram bio: "Let your creativity flow and make your mark with a book that is as unique as you are. Discover the joy of personalised creation today!"
-Three collections:
-- LEGACY — timeless journals for your enduring life stories.
-- LIFE PILLAR — a dedicated journal for each pillar of life.
-- ZODIAC — personalized journals tied to the 12 star signs; customers say "it introduces me to me".
-The five life pillars: Relationships, Work & Education, Health, Wealth, Self-Awareness.
-Personalization: zodiac editions + fully custom keepsakes (very popular as birthday & anniversary gifts).
-Emotional territory: self-discovery, reflection, legacy, the sacred ownership of one's own words, true craftsmanship (the cut, feel, alignment, stitch), and deeply meaningful gifting.
-Real customer language to echo: "it introduces me to me", "a space purely mine", "felt like it was made for me", "I find it sacred".
-Voice: premium, soulful, warm, reflective, elegant — quiet luxury. Never loud, gimmicky or discount-driven. Often pairs a reflective human truth with the tactile craft of the book.
-Audience: thoughtful people ~22-45 who value handmade, meaningful, personal objects; journalers; and gift-buyers seeking something heartfelt and unique. Strong in India, with global appeal.`;
+const BRAND_KB = `DEEP BRAND KNOWLEDGE — Trox Creations (@troxcreations):
+
+FOUNDER & ORIGIN:
+Benjamin Victor Manickam founded Trox Creations as his Ikigai — the intersection of passion, skill, and meaningful impact. He is an educator at Victor Manickam Knowledge Group (VMKG) and Business Head at Humandesign Education Pvt Ltd. He created personalized study tools for himself and discovered that building customized structures enhanced ownership and responsibility — then built a brand to give others the same transformative experience.
+
+BRAND ESSENCE:
+Tagline: "Every notebook tells a story waiting to be written."
+Mission: "To Learn and Express" — the brand learns from people, stories, and ideas, then channels those insights into thoughtfully designed notebooks.
+Core belief: "A notebook is not just a product — it's a reflection of thought, identity, and possibility."
+Featured philosopher: Brené Brown ("Connection gives purpose and meaning to our lives.") — signals an emotionally intelligent, reflective audience.
+Instagram bio: "Let your creativity flow and make your mark with a book that is as unique as you are. Discover the joy of personalised creation today!"
+
+BRAND'S 7 PILLARS:
+Vision (Excellence) · Mission (Learning & Expression) · Purpose (Self-Presentation) · Values (Joy, Oneness, Responsibility) · Principles (Service, Integrity, Authenticity) · Body of Work · Realm of Work.
+
+FOUR PRODUCT LINES:
+- LEGACY COLLECTION — Timeless notebooks for your enduring stories. Five journals: Relationships, Work & Education, Health, Wealth, Self-Awareness.
+- LIFE PILLAR SERIES — A dedicated journal for each pillar of life. Same five themes as Legacy.
+- ZODIAC SERIES — Personalized journals for all 12 star signs. Customers say "it introduces me to me." Most-used gifting product.
+- VMKG EDITION — Benjamin's own educational/knowledge brand collaboration. Likely used in workshops, coaching, and Human Design contexts.
+
+THE FIVE LIFE PILLARS: Relationships · Work & Education · Health · Wealth · Self-Awareness.
+
+PERSONALIZATION: Zodiac editions + fully custom keepsakes. Most popular as birthday and anniversary gifts.
+
+EMOTIONAL TERRITORY: Self-discovery, reflection, legacy, ownership of one's own words, true craftsmanship (the cut, feel, alignment, stitch), deeply meaningful gifting, personal identity.
+
+REAL CUSTOMER LANGUAGE: "it introduces me to me", "a space purely mine", "felt like it was made for me", "I find it sacred."
+
+VOICE: Premium, soulful, warm, reflective, philosophical, elegant. Quiet luxury — never loud, gimmicky or discount-driven. Pairs reflective human truths with tactile craft. The founder's Human Design background means the brand speaks to people doing inner work.
+
+AUDIENCE: Thoughtful, introspective people 22–45 who value handmade, meaningful objects; journalers; self-development practitioners; Human Design/astrology community; gift-buyers seeking heartfelt and unique gifts. Strong in India (Navi Mumbai base), global appeal.
+
+INSTAGRAM: @troxcreations · 9,100+ followers · 37 posts · Based in Navi Mumbai.
+
+CONTENT STRENGTHS TO LEAN INTO: The founder's story (Ikigai, Human Design, education), the "made for me" personalization hook, the Zodiac community (huge on Instagram), the craft itself (paper, stitching, texture, foil — close-up b-roll performs), birthday/anniversary gifting occasions, philosophical quotes tied to the right journal.`;
 
 const TROX_DEFAULT = {
   name: "Trox Creations",
-  sells: "Premium handcrafted notebooks & journals — Legacy, Life Pillar & personalized Zodiac collections, plus custom keepsakes.",
-  audience: "Thoughtful people 22-45 who love handmade, meaningful objects; journalers; and gift-buyers seeking something heartfelt & personal (esp. birthdays & anniversaries).",
-  voice: "Premium, soulful, warm, reflective, elegant. Quiet luxury — never loud or salesy. Celebrates craft and self-discovery.",
-  goal: "Grow @troxcreations from 9,107 to 12,000+ organic followers; reach new gift-buyers and journaling lovers in India and beyond.",
+  sells: "Premium handcrafted notebooks & journals — Legacy, Life Pillar, Zodiac & VMKG Edition. Custom keepsakes. Founded as Benjamin's Ikigai.",
+  audience: "Introspective people 22-45 into self-development, journaling, Human Design / astrology. Gift-buyers wanting heartfelt, personalised keepsakes (esp. birthdays & anniversaries).",
+  voice: "Premium, soulful, warm, reflective, philosophical, elegant. Quiet luxury — never salesy. The brand lives at the intersection of craftsmanship and consciousness. Brené Brown territory.",
+  goal: "Grow @troxcreations from 9,107 to 12,000+ organic followers; attract gift-buyers, journaling lovers, and the self-development/zodiac community.",
 };
 
 async function callClaude(prompt) {
@@ -178,14 +219,22 @@ function parseJSON(text) {
 
 function buildInstructions(fmt) {
   switch (fmt) {
-    case "Reel": return "Give: HOOK (0-3s) opening line + opening visual; 4-5 numbered BEATS each with [VISUAL] and [SAY/TEXT] + rough timing; B-ROLL (3 shots, lean into close-ups of the craft — paper, stitching, foil, hands); 2-3 on-screen TEXT overlays; CAPTION ending in a soft CTA; 6-8 hashtags.";
+    case "Reel": return "Give: HOOK (0-3s) opening line + opening visual; 4-5 numbered BEATS each with [VISUAL] and [SAY/TEXT] + rough timing; B-ROLL (3 shots — lean into close-ups: paper texture, stitching, foil emboss, hands turning pages, pen on paper); 2-3 on-screen TEXT overlays; CAPTION ending in a soft CTA; 6-8 hashtags.";
     case "Carousel": return "Give a COVER hook line, then SLIDE 1 to SLIDE 6 each with short on-slide text + a one-line visual note; final slide = gentle CTA; then a CAPTION + 6-8 hashtags.";
-    case "Post": return "Give: IMAGE CONCEPT (1-2 lines, emphasise the tactile craft); CAPTION (reflective hook line, 2-3 body lines, soft CTA); 6-8 hashtags.";
+    case "Post": return "Give: IMAGE CONCEPT (1-2 lines, emphasise tactile craft and emotion); CAPTION (reflective hook line, 2-3 body lines in Benjamin's philosophical voice, soft CTA); 6-8 hashtags.";
     case "Story": return "Give a 4-5 FRAME sequence; each frame: visual + short text overlay; include one interactive sticker idea (poll/question/quiz); final frame = CTA with a tap/swipe action.";
-    case "Pin": return "Give: PIN TITLE (SEO, under 100 chars); PIN DESCRIPTION (keyword-rich, 2-3 sentences, gift & journaling intent); IMAGE CONCEPT; destination + CTA idea.";
+    case "Pin": return "Give: PIN TITLE (SEO-rich, under 100 chars); PIN DESCRIPTION (keyword-rich, 2-3 sentences, gift & journaling & self-development intent); IMAGE CONCEPT; destination + CTA idea.";
     case "Idea Pin": return "Give a 4-6 PAGE outline; each page: visual + short text; page 1 = hook, last page = CTA; plus 5 keyword tags.";
     default: return "Give a complete, ready-to-produce content brief.";
   }
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
 }
 
 export default function TroxStudio() {
@@ -197,6 +246,9 @@ export default function TroxStudio() {
   const [playbook, setPlaybook] = useState("");
   const [posts, setPosts] = useState([]);
   const [followers, setFollowers] = useState({ start: "9107", now: "9107" });
+  const [competitors, setCompetitors] = useState([]);
+  const [compInput, setCompInput] = useState("");
+  const [compAnalysis, setCompAnalysis] = useState("");
 
   const [tab, setTab] = useState("Dashboard");
   const [channel, setChannel] = useState("instagram");
@@ -223,24 +275,26 @@ export default function TroxStudio() {
     try { const r = localStorage.getItem("trox_playbook"); if (r) setPlaybook(r); } catch (e) {}
     try { const r = localStorage.getItem("trox_posts"); if (r) setPosts(JSON.parse(r)); } catch (e) {}
     try { const r = localStorage.getItem("trox_followers"); if (r) setFollowers(JSON.parse(r)); } catch (e) {}
+    try { const r = localStorage.getItem("trox_competitors"); if (r) setCompetitors(JSON.parse(r)); } catch (e) {}
     setLoaded(true);
   }, []);
 
   const persist = (k, v) => { try { localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); } catch (e) {} };
   const savePosts = (n) => { setPosts(n); persist("trox_posts", n); };
   const saveFollowers = (n) => { setFollowers(n); persist("trox_followers", n); };
+  const saveCompetitors = (n) => { setCompetitors(n); persist("trox_competitors", n); };
   function saveProfile() { setProfile({ ...draft }); setEditing(false); persist("trox_profile", draft); }
   function startEdit() { setDraft(profile || TROX_DEFAULT); setEditing(true); }
 
   const learnCtx = () => `${BRAND_KB}
 
-EDITABLE BRAND PROFILE:
+EDITABLE BRAND PROFILE (user-set):
 - Sells: ${profile.sells}
 - Audience: ${profile.audience}
 - Voice: ${profile.voice}
 - Goal: ${profile.goal}
 
-WHAT WE'VE LEARNED (apply this — based on Trox's REAL performance):
+WHAT WE'VE LEARNED (apply this — based on real performance):
 ${playbook || "No performance data logged yet — use strong best practices for this premium, reflective brand."}`;
 
   function composeSubject() {
@@ -278,7 +332,7 @@ Return ONLY a JSON array (no markdown). Each object: {"title","format","hook","w
 
 Create a ${format} for ${channelLabel(channel)} about: ${subject}.
 ${buildInstructions(format)}
-Apply the learnings above. Write 100% in Trox's premium, reflective voice. Plain text only, no markdown symbols.`);
+Apply the learnings above. Write 100% in Trox's premium, reflective, philosophical voice. Plain text only, no markdown symbols.`);
       setDraftContent({ channel, type: format, title: subject, content: out });
     } catch (e) { setErr("Couldn't build that — try again."); }
     setBusy("");
@@ -289,6 +343,7 @@ Apply the learnings above. Write 100% in Trox's premium, reflective voice. Plain
     savePosts([{ id: uid(), ...draftContent, createdAt: Date.now(), status: "planned", metrics: null, insight: "" }, ...posts]);
     setDraftContent(null); setTab("Posts");
   }
+
   function openLog(p) { setLogOpen(p.id); setLogForm({ reach: "", likes: "", comments: "", saves: "", shares: "", follows: "", notes: "" }); }
 
   async function submitLog(p) {
@@ -320,10 +375,76 @@ Be concise.`);
     setBusy("");
   }
 
+  async function fetchCompetitor(username, existing) {
+    const key = "comp_" + username;
+    setBusy(key);
+    const updated = (existing || competitors).map((c) =>
+      c.username === username ? { ...c, loading: true, error: null } : c
+    );
+    saveCompetitors(updated);
+    try {
+      const res = await fetch(`/api/instagram?username=${encodeURIComponent(username)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      saveCompetitors((existing || competitors).map((c) =>
+        c.username === username ? { ...c, ...data, loading: false, error: null } : c
+      ));
+    } catch (e) {
+      saveCompetitors((existing || competitors).map((c) =>
+        c.username === username ? { ...c, loading: false, error: e.message } : c
+      ));
+    }
+    setBusy("");
+  }
+
+  async function addCompetitor() {
+    const username = compInput.replace("@", "").trim().toLowerCase();
+    if (!username) return;
+    if (competitors.find((c) => c.username === username)) { setCompInput(""); return; }
+    const list = [...competitors, { username, displayName: username, followers: null, posts: null, bio: null, fetchedAt: null, loading: true, error: null }];
+    saveCompetitors(list);
+    setCompInput("");
+    await fetchCompetitor(username, list);
+  }
+
+  function removeCompetitor(username) {
+    saveCompetitors(competitors.filter((c) => c.username !== username));
+  }
+
+  async function genCompAnalysis() {
+    if (competitors.length === 0) { setErr("Add at least one competitor first."); return; }
+    setBusy("comp_analysis"); setErr(""); setCompAnalysis("");
+    const compData = competitors.map((c) =>
+      `@${c.username} (${c.displayName}): ${c.followers || "?"} followers, ${c.posts || "?"} posts. Bio: "${c.bio || "unknown"}"`
+    ).join("\n");
+    const now = +(followers.now || followers.start || 0);
+    try {
+      const out = await callClaude(`${learnCtx()}
+
+TROX CREATIONS current position: ${now.toLocaleString()} followers, 37 posts, based in Navi Mumbai.
+
+COMPETITOR INTELLIGENCE:
+${compData}
+
+You are Trox's strategic social media analyst. Produce a sharp competitive gap analysis:
+
+THEIR EDGE — What are competitors doing well that Trox isn't yet doing? (2-3 specific points)
+TROX'S EDGE — What is Trox's genuine unique advantage vs these competitors? (2-3 specific points, lean into the VMKG/Human Design angle, personalization, the founder's Ikigai story, the zodiac community)
+CONTENT GAPS — 3 specific content angles/series that none of these competitors are owning, that Trox could own completely.
+QUICK WINS — 2 posts to make THIS WEEK to start pulling followers from this space.
+
+Be specific, tactical, concise. Plain text, no markdown symbols.`);
+      setCompAnalysis(out);
+    } catch (e) { setErr("Couldn't run analysis — try again."); }
+    setBusy("");
+  }
+
   async function runCoach() {
     setBusy("coach"); setErr(""); setCoach("");
     const done = posts.filter((p) => p.metrics).slice(0, 8);
-    const summary = done.length ? done.map((p) => `- ${p.type} (${channelLabel(p.channel)}) "${p.title}": reach ${p.metrics.reach || "?"}, saves ${p.metrics.saves || "?"}, comments ${p.metrics.comments || "?"}, follows ${p.metrics.follows || "?"}`).join("\n") : "No posts with logged results yet.";
+    const summary = done.length
+      ? done.map((p) => `- ${p.type} (${channelLabel(p.channel)}) "${p.title}": reach ${p.metrics.reach || "?"}, saves ${p.metrics.saves || "?"}, comments ${p.metrics.comments || "?"}, follows ${p.metrics.follows || "?"}`).join("\n")
+      : "No posts with logged results yet.";
     const start = +(followers.start || 0), now = +(followers.now || followers.start || 0);
     const goal = start + 3000, remaining = Math.max(0, goal - now);
     try {
@@ -354,7 +475,7 @@ Be specific and concise. Plain text, no markdown symbols.`);
   const bestSaves = withData.reduce((m, p) => Math.max(m, +p.metrics.saves || 0), 0);
 
   if (!loaded) return <div className="bw-root"><style>{CSS}</style><div className="bw-wrap"><div className="bw-load"><div className="bw-spin" /> opening the studio…</div></div></div>;
-  const needSetup = editing;
+
   const showThemeSel = collection === "Legacy" || collection === "Life Pillar";
   const showSignSel = collection === "Zodiac";
 
@@ -369,17 +490,17 @@ Be specific and concise. Plain text, no markdown symbols.`);
         <div className="bw-head">
           <div>
             <div className="bw-logo"><b>TROX</b> <span>Studio</span></div>
-            <div className="bw-tag">An AI social manager for handcrafted journals · grows Instagram & Pinterest toward +3,000 followers</div>
+            <div className="bw-tag">AI social manager · handcrafted journals · growing @troxcreations toward +3,000 followers</div>
           </div>
           {profile && !editing && (
             <div className="bw-brandchip"><span>Brand Brain: <b>{profile.name}</b></span><button className="bw-edit" onClick={startEdit}>edit</button></div>
           )}
         </div>
 
-        {needSetup ? (
+        {editing ? (
           <div className="bw-setup">
             <h2>Trox Creations — Brand Brain</h2>
-            <p className="sub">Pre-loaded from your website. Tweak anything; it's saved and feeds every idea, script and caption.</p>
+            <p className="sub">Pre-loaded from your site and about page. Tweak anything — it feeds every idea, script and caption.</p>
             {[
               ["sells", "What you sell", false],
               ["audience", "Target audience", false],
@@ -398,7 +519,7 @@ Be specific and concise. Plain text, no markdown symbols.`);
         ) : (
           <>
             <div className="bw-tabs">
-              {TABS.map((t) => <button key={t} className={"bw-tab" + (tab === t ? " on" : "")} onClick={() => { setTab(t); setErr(""); }}>{t}</button>)}
+              {TABS.map((t) => <button key={t} className={"bw-tab" + (tab === t ? " on" : "")} onClick={() => { setTab(t); setErr(""); setCompAnalysis(""); }}>{t}</button>)}
             </div>
 
             {tab === "Dashboard" && (
@@ -410,8 +531,8 @@ Be specific and concise. Plain text, no markdown symbols.`);
                   </div>
                   <div className="bw-bar"><div className="bw-fill" style={{ width: pct + "%" }} /></div>
                   <div className="bw-goalfoot">
-                    <div><span className="bw-mlabel">Starting followers</span><input className="bw-input bw-smallin" type="number" value={followers.start} placeholder="e.g. 850" onChange={(e) => saveFollowers({ ...followers, start: e.target.value })} /></div>
-                    <div><span className="bw-mlabel">Followers now</span><input className="bw-input bw-smallin" type="number" value={followers.now} placeholder="e.g. 1120" onChange={(e) => saveFollowers({ ...followers, now: e.target.value })} /></div>
+                    <div><span className="bw-mlabel">Starting followers</span><input className="bw-input bw-smallin" type="number" value={followers.start} placeholder="e.g. 9107" onChange={(e) => saveFollowers({ ...followers, start: e.target.value })} /></div>
+                    <div><span className="bw-mlabel">Followers now</span><input className="bw-input bw-smallin" type="number" value={followers.now} placeholder="e.g. 9200" onChange={(e) => saveFollowers({ ...followers, now: e.target.value })} /></div>
                   </div>
                 </div>
                 <div className="bw-tiles">
@@ -422,8 +543,8 @@ Be specific and concise. Plain text, no markdown symbols.`);
                 </div>
                 <div className="bw-playbook">
                   <h3>The Playbook <em>· the AI's living memory</em></h3>
-                  <div className="sub">Rewritten each time you log a post's results, then fed into every idea and piece of content.</div>
-                  <div className={"body" + (playbook ? "" : " empty")}>{playbook || "Empty for now. Create content, post it, then log how it did in the Posts tab — the AI will start building Trox's growth playbook here."}</div>
+                  <div className="sub">Rewritten each time you log a post's results — fed into every idea and piece of content.</div>
+                  <div className={"body" + (playbook ? "" : " empty")}>{playbook || "Empty for now. Create content, post it, then log results in the Posts tab — the AI will build Trox's growth playbook here."}</div>
                 </div>
               </>
             )}
@@ -433,7 +554,6 @@ Be specific and concise. Plain text, no markdown symbols.`);
                 <div className="bw-channels">
                   {CHANNELS.map((c) => <button key={c.id} className={"bw-chan" + (channel === c.id ? " on" : "")} onClick={() => { setChannel(c.id); setFormat(FORMATS[c.id][0]); setIdeas([]); setDraftContent(null); }}>{c.label}</button>)}
                 </div>
-
                 <div className="bw-builder">
                   <select className="bw-select" value={collection} onChange={(e) => setCollection(e.target.value)}>
                     {COLLECTIONS.map((c) => <option key={c}>{c}</option>)}
@@ -442,12 +562,10 @@ Be specific and concise. Plain text, no markdown symbols.`);
                   {showSignSel && <select className="bw-select" value={sign} onChange={(e) => setSign(e.target.value)}>{SIGNS.map((s) => <option key={s}>{s}</option>)}</select>}
                   <select className="bw-select" value={angle} onChange={(e) => setAngle(e.target.value)}>{ANGLES.map((a) => <option key={a}>{a}</option>)}</select>
                 </div>
-
                 <div className="bw-row">
-                  <input className="bw-input" placeholder='Optional extra angle — e.g. "unboxing a custom anniversary order"' value={topic} onChange={(e) => setTopic(e.target.value)} />
+                  <input className="bw-input" placeholder="Optional: unboxing a Cancer zodiac gift, or the founder Ikigai story" value={topic} onChange={(e) => setTopic(e.target.value)} />
                   <button className="bw-btn ghost" onClick={genIdeas} disabled={busy === "ideas"}>{busy === "ideas" ? "…" : "Idea me 5"}</button>
                 </div>
-
                 {busy === "ideas" && <div className="bw-load"><div className="bw-spin" /> Scoping ideas for {channelLabel(channel)}…</div>}
                 {ideas.length > 0 && (
                   <>
@@ -468,12 +586,10 @@ Be specific and concise. Plain text, no markdown symbols.`);
                     <div className="bw-note">Estimates blend format, brand fit and your Playbook — they sharpen as you log real results.</div>
                   </>
                 )}
-
                 <div className="bw-row" style={{ marginTop: 22 }}>
                   <select className="bw-select" value={format} onChange={(e) => setFormat(e.target.value)}>{FORMATS[channel].map((f) => <option key={f}>{f}</option>)}</select>
                   <button className="bw-btn" onClick={buildContent} disabled={busy === "build"}>{busy === "build" ? "Crafting…" : `Build the ${format}`}</button>
                 </div>
-
                 {busy === "build" && <div className="bw-load"><div className="bw-spin" /> Crafting your {format}…</div>}
                 {draftContent && (
                   <>
@@ -523,6 +639,70 @@ Be specific and concise. Plain text, no markdown symbols.`);
                     </div>
                   ))}
                 </div>
+              </>
+            )}
+
+            {tab === "Competition" && (
+              <>
+                <div className="bw-comp-add">
+                  <input
+                    className="bw-input"
+                    placeholder="@competitorhandle"
+                    value={compInput}
+                    onChange={(e) => setCompInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addCompetitor(); }}
+                  />
+                  <button className="bw-btn sm" onClick={addCompetitor} disabled={!compInput.trim() || busy.startsWith("comp_")}>
+                    {busy.startsWith("comp_") && !busy.includes("analysis") ? "Fetching…" : "Track"}
+                  </button>
+                </div>
+
+                {competitors.length === 0 && (
+                  <div className="bw-empty">
+                    <div className="big">No competitors tracked yet</div>
+                    Add Instagram handles above — the app will fetch their follower count, post count, and bio automatically. Then run the gap analysis to find what Trox can own.
+                  </div>
+                )}
+
+                {competitors.length > 0 && (
+                  <>
+                    <div className="bw-compgrid">
+                      {competitors.map((c, i) => (
+                        <div className={"bw-compcard" + (c.loading ? " loading" : "")} key={c.username} style={{ animationDelay: i * 50 + "ms" }}>
+                          <div className="handle">@{c.username}</div>
+                          <div className="name">{c.loading ? "Fetching…" : (c.displayName !== c.username ? c.displayName : c.username)}</div>
+                          {!c.loading && !c.error && (c.followers || c.posts) && (
+                            <div className="bw-compstats">
+                              {c.followers && <div className="bw-compstat"><div className="val">{c.followers}</div><div className="lbl">followers</div></div>}
+                              {c.posts && <div className="bw-compstat"><div className="val">{c.posts}</div><div className="lbl">posts</div></div>}
+                            </div>
+                          )}
+                          {c.bio && <div className="bw-compbio">{c.bio.slice(0, 120)}{c.bio.length > 120 ? "…" : ""}</div>}
+                          {c.error && <div className="bw-comperr">Could not fetch — Instagram may have blocked the request. Data below may be partial.</div>}
+                          <div className="bw-compfooter">
+                            <span className="bw-comptime">{c.fetchedAt ? timeAgo(c.fetchedAt) : ""}</span>
+                            <div className="bw-compbtns">
+                              <button className="bw-mini" onClick={() => fetchCompetitor(c.username)} disabled={!!busy}>↻ Refresh</button>
+                              <button className="bw-mini" onClick={() => removeCompetitor(c.username)}>Remove</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bw-gap-section">
+                      <h3>Gap Analysis</h3>
+                      <div className="sub">AI compares Trox vs every tracked competitor — finds what they own, what's open, and your fastest moves.</div>
+                      <div className="bw-row">
+                        <button className="bw-btn" onClick={genCompAnalysis} disabled={busy === "comp_analysis"}>
+                          {busy === "comp_analysis" ? "Analysing…" : "Analyse the gap →"}
+                        </button>
+                      </div>
+                      {busy === "comp_analysis" && <div className="bw-load"><div className="bw-spin" /> Reading the competitive landscape…</div>}
+                      {compAnalysis && <div className="bw-out"><button className="bw-copy" onClick={() => copy(compAnalysis)}>copy</button>{compAnalysis}</div>}
+                    </div>
+                  </>
+                )}
               </>
             )}
 
