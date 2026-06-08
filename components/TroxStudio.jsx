@@ -155,7 +155,49 @@ textarea.bw-input { resize:vertical; min-height:78px; width:100%; }
 .bw-keystatus.set { color:var(--ok); }
 .bw-keystatus.unset { color:var(--muted); }
 .bw-savednote { font-size:12px; color:var(--ok); font-weight:700; margin-top:8px; animation:rise .3s ease; }
+.bw-ig-setup { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; max-width:560px; }
+.bw-ig-setup h3 { font-family:'Fraunces'; font-weight:600; font-size:17px; margin-bottom:4px; }
+.bw-ig-setup .sub { font-size:12px; color:var(--ink-2); margin-bottom:16px; line-height:1.6; }
+.bw-ig-steps { margin-bottom:16px; counter-reset:step; }
+.bw-ig-step { display:flex; gap:10px; margin-bottom:10px; font-size:12.5px; color:var(--ink-2); line-height:1.5; }
+.bw-ig-step .num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--blue); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+.bw-ig-step b { color:var(--ink); }
+.bw-ig-connected { display:flex; align-items:center; gap:12px; background:#edf7f2; border:1px solid #b7e3cc; border-radius:14px; padding:14px 18px; margin-bottom:16px; }
+.bw-ig-avatar { width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--line); }
+.bw-ig-avatar-ph { width:42px; height:42px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; color:#fff; font-family:'Fraunces'; font-weight:600; font-size:16px; flex-shrink:0; }
+.bw-ig-connected .info .handle { font-size:13px; font-weight:800; color:var(--ok); }
+.bw-ig-connected .info .stats { font-size:11.5px; color:var(--ink-2); margin-top:2px; }
+.bw-analytics-header { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
+@media(max-width:600px){ .bw-analytics-header { grid-template-columns:1fr 1fr; } }
+.bw-analytics-tile { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+.bw-analytics-tile .aval { font-family:'Fraunces'; font-weight:600; font-size:26px; color:var(--ink); line-height:1; }
+.bw-analytics-tile .albl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-top:4px; }
+.bw-analytics-syncbar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+.bw-analytics-synctime { font-size:11.5px; color:var(--muted); }
+.bw-ig-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+@media(max-width:700px){ .bw-ig-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:420px){ .bw-ig-grid { grid-template-columns:1fr; } }
+.bw-ig-post { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; animation:rise .35s ease backwards; position:relative; }
+.bw-ig-post.top { border-color:var(--ok); }
+.bw-ig-post .ptop { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.bw-ig-post .ptype { font-size:9px; font-weight:800; padding:2px 8px; border-radius:999px; letter-spacing:.4px; background:#eaf1fc; color:var(--blue); }
+.bw-ig-post .pdate { font-size:10px; color:var(--muted); }
+.bw-ig-post .pcap { font-size:12px; color:var(--ink); line-height:1.45; margin-bottom:10px; min-height:34px; }
+.bw-ig-metrics { display:flex; gap:8px; flex-wrap:wrap; }
+.bw-ig-metric { display:flex; flex-direction:column; align-items:center; background:var(--card-2); border-radius:8px; padding:5px 9px; min-width:44px; }
+.bw-ig-metric .mv { font-family:'Fraunces'; font-weight:600; font-size:15px; color:var(--ink); line-height:1; }
+.bw-ig-metric .ml { font-size:9px; color:var(--muted); font-weight:700; letter-spacing:.3px; text-transform:uppercase; margin-top:2px; }
+.bw-ig-post .pfooter { margin-top:10px; display:flex; justify-content:space-between; align-items:center; }
+.bw-ig-post .peng { font-size:10.5px; font-weight:700; }
+.bw-ig-post .peng.high { color:var(--ok); }
+.bw-ig-post .peng.low { color:var(--rose); }
+.bw-ig-post .peng.mid { color:var(--gold); }
+.bw-ig-post a.piglink { font-size:10px; color:var(--blue); text-decoration:none; }
+.bw-ig-post a.piglink:hover { text-decoration:underline; }
+.bw-ig-nodata { text-align:center; padding:50px 20px; color:var(--ink-2); }
+.bw-ig-nodata .big { font-family:'Fraunces'; font-weight:600; font-size:20px; color:var(--ink); margin-bottom:8px; }
 `;
+
 
 const CHANNELS = [{ id: "instagram", label: "Instagram" }, { id: "pinterest", label: "Pinterest" }];
 const FORMATS = { instagram: ["Reel", "Carousel", "Post", "Story"], pinterest: ["Pin", "Idea Pin"] };
@@ -163,7 +205,7 @@ const COLLECTIONS = ["General brand", "Legacy", "Life Pillar", "Zodiac", "VMKG E
 const PILLARS = ["Relationships", "Work & Education", "Health", "Wealth", "Self-Awareness"];
 const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
 const ANGLES = ["Any angle","Self-discovery","Gifting","Craftsmanship","Behind the scenes","Founder story","Customer story","Festive / occasion","Philosophy & reflection"];
-const TABS = ["Dashboard","Create","Posts","Competition","Coach","Settings"];
+const TABS = ["Dashboard","Create","Posts","Analytics","Competition","Coach","Settings"];
 const channelLabel = (id) => CHANNELS.find((c) => c.id === id)?.label || id;
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -260,6 +302,16 @@ export default function TroxStudio() {
   const [err, setErr] = useState("");
   const [logOpen, setLogOpen] = useState(null);
   const [logForm, setLogForm] = useState({});
+  const [igToken, setIgToken] = useState("");
+  const [igTokenInput, setIgTokenInput] = useState("");
+  const [igAccountId, setIgAccountId] = useState("");
+  const [igAccount, setIgAccount] = useState(null);
+  const [igMedia, setIgMedia] = useState([]);
+  const [igConnecting, setIgConnecting] = useState(false);
+  const [igSyncing, setIgSyncing] = useState(false);
+  const [igError, setIgError] = useState("");
+  const [igAnalysis, setIgAnalysis] = useState("");
+  const [igLastSync, setIgLastSync] = useState(null);
 
   useEffect(() => {
     let p = null;
@@ -273,6 +325,11 @@ export default function TroxStudio() {
     try { const r = localStorage.getItem("trox_ai_provider"); if (r) setAiProvider(r); } catch (e) {}
     try { const r = localStorage.getItem("trox_groq_key"); if (r) setGroqKey(r); } catch (e) {}
     try { const r = localStorage.getItem("trox_claude_key"); if (r) setClaudeKey(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_token"); if (r) setIgToken(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_account_id"); if (r) setIgAccountId(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_account"); if (r) setIgAccount(JSON.parse(r)); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_media"); if (r) setIgMedia(JSON.parse(r)); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_last_sync"); if (r) setIgLastSync(+r); } catch (e) {}
     setLoaded(true);
   }, []);
 
@@ -284,6 +341,89 @@ export default function TroxStudio() {
   function startEdit() { setDraft(profile || TROX_DEFAULT); setEditing(true); }
 
   function selectProvider(p) { setAiProvider(p); persist("trox_ai_provider", p); }
+
+  async function connectInstagram() {
+    const t = igTokenInput.trim();
+    if (!t) return;
+    setIgConnecting(true); setIgError("");
+    try {
+      const res = await fetch("/api/instagram-analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: t, action: "setup" }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setIgToken(t); setIgAccountId(data.igAccountId); setIgAccount(data.account);
+      persist("trox_ig_token", t);
+      persist("trox_ig_account_id", data.igAccountId);
+      persist("trox_ig_account", data.account);
+      setIgTokenInput("");
+    } catch (e) { setIgError(e.message); }
+    setIgConnecting(false);
+  }
+
+  async function syncInstagram() {
+    if (!igToken || !igAccountId) return;
+    setIgSyncing(true); setIgError("");
+    const call = (body) => fetch("/api/instagram-analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => r.json());
+    try {
+      const [mediaData, accData] = await Promise.all([
+        call({ token: igToken, action: "media", igAccountId }),
+        call({ token: igToken, action: "account", igAccountId }),
+      ]);
+      if (mediaData.error) throw new Error(mediaData.error);
+      const posts = mediaData.data || [];
+      const enriched = await Promise.all(posts.map(async (post) => {
+        const ins = await call({ token: igToken, action: "post_insights", igAccountId, mediaId: post.id, mediaType: post.media_type });
+        const insights = {};
+        for (const m of (ins.data || [])) insights[m.name] = m.values?.[0]?.value ?? m.value ?? 0;
+        return { ...post, insights };
+      }));
+      setIgMedia(enriched);
+      persist("trox_ig_media", enriched);
+      if (!accData.error) { setIgAccount(accData); persist("trox_ig_account", accData); }
+      const now = Date.now();
+      setIgLastSync(now); persist("trox_ig_last_sync", String(now));
+    } catch (e) { setIgError(e.message); }
+    setIgSyncing(false);
+  }
+
+  async function analyzeInstagram() {
+    if (!igMedia.length || noKeyGuard()) return;
+    setBusy("ig_ai"); setIgAnalysis(""); setErr("");
+    const avgReach = igMedia.filter((p) => p.insights?.reach).reduce((a, p) => a + (p.insights.reach||0), 0) / (igMedia.filter((p) => p.insights?.reach).length || 1);
+    const postsSummary = igMedia.slice(0, 20).map((p) => `${p.media_type} | ${new Date(p.timestamp).toLocaleDateString()} | ♥ ${p.like_count} 💬 ${p.comments_count} 👁 ${p.insights?.reach||"?"} 🔖 ${p.insights?.saved||"?"} | "${(p.caption||"").slice(0,80)}"`).join("\n");
+    try {
+      const out = await callAI(`${learnCtx()}
+
+LIVE INSTAGRAM DATA for @${igAccount?.username||"troxcreations"} (${igAccount?.followers_count} followers):
+Average post reach: ${Math.round(avgReach)}
+
+RECENT POSTS (type | date | likes | comments | reach | saves | caption):
+${postsSummary}
+
+Analyse this real performance data for Trox Creations and give:
+1. TOP FORMATS — which post types (Reels/Carousels/Posts) drive the most reach and saves
+2. BEST THEMES — what content angles resonate most (use caption context)
+3. UNDERPERFORMING — what is dragging down numbers and why
+4. NEXT 3 POSTS — specific, ready-to-brief ideas based on what the data says works
+5. ONE QUICK WIN — something to do this week
+
+Be data-driven and specific to Trox's premium journal brand and audience. Plain text, no markdown.`);
+      setIgAnalysis(out);
+    } catch (e) { setErr(e.message); }
+    setBusy("");
+  }
+
+  function disconnectInstagram() {
+    setIgToken(""); setIgAccountId(""); setIgAccount(null); setIgMedia([]); setIgLastSync(null); setIgAnalysis("");
+    ["trox_ig_token","trox_ig_account_id","trox_ig_account","trox_ig_media","trox_ig_last_sync"].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+  }
 
   function saveKey(type) {
     const val = keyInput[type].trim();
@@ -485,6 +625,8 @@ Be specific, concise. Plain text, no markdown.`);
   const totalFollows = withData.reduce((a, p) => a + (+p.metrics.follows||0), 0);
   const bestSaves = withData.reduce((a, p) => Math.max(a, +p.metrics.saves||0), 0);
   const providerLabel = aiProvider === "groq" ? "Groq (free)" : "Claude";
+  const fmtNum = (n) => { if (n == null) return "—"; if (n >= 1000000) return (n/1000000).toFixed(1)+"M"; if (n >= 1000) return (n/1000).toFixed(1)+"K"; return String(n); };
+  const igAvgReach = igMedia.length ? Math.round(igMedia.filter((p) => p.insights?.reach).reduce((a,p) => a+(p.insights.reach||0),0) / (igMedia.filter((p) => p.insights?.reach).length||1)) : 0;
 
   if (!loaded) return <div className="bw-root"><style>{CSS}</style><div className="bw-wrap"><div className="bw-load"><div className="bw-spin" />opening the studio…</div></div></div>;
 
@@ -640,6 +782,92 @@ Be specific, concise. Plain text, no markdown.`);
               </div>
             </>)}
 
+            {tab === "Analytics" && (<>
+              {!igToken || !igAccountId ? (
+                <div className="bw-ig-setup">
+                  <h3>Live Instagram Analytics</h3>
+                  <p className="sub">Connect your Instagram Business/Creator account to see real reach, saves, impressions and engagement for every post — then let AI tell you exactly what to make next.</p>
+                  <div className="bw-ig-steps">
+                    <div className="bw-ig-step"><span className="num">1</span><span>Make sure your Instagram is a <b>Business or Creator account</b>: Instagram → Settings → Account → Switch to Professional</span></div>
+                    <div className="bw-ig-step"><span className="num">2</span><span>Link it to a <b>Facebook Page</b>: Meta Accounts Centre → Add accounts → Connect Instagram</span></div>
+                    <div className="bw-ig-step"><span className="num">3</span><span>Create a <b>Meta Developer App</b>: <b>developers.facebook.com</b> → My Apps → Create App → Business</span></div>
+                    <div className="bw-ig-step"><span className="num">4</span><span>Open the <b>Graph API Explorer</b>: <b>developers.facebook.com/tools/explorer</b> → select your app → User Token → add permissions: <b>instagram_basic, pages_show_list, instagram_manage_insights</b> → Generate Token</span></div>
+                    <div className="bw-ig-step"><span className="num">5</span><span>Paste the token below and click Connect. Token expires in 60 days — paste a fresh one any time.</span></div>
+                  </div>
+                  {igError && <div className="bw-note" style={{color:"var(--rose)",marginBottom:12}}>{igError}</div>}
+                  <div className="bw-keyrow">
+                    <input className="bw-input" type="password" placeholder="Paste your access token…" value={igTokenInput} onChange={(e) => setIgTokenInput(e.target.value)} onKeyDown={(e) => { if(e.key==="Enter") connectInstagram(); }}/>
+                    <button className="bw-btn sm ok" onClick={connectInstagram} disabled={!igTokenInput.trim()||igConnecting}>{igConnecting?"Connecting…":"Connect"}</button>
+                  </div>
+                </div>
+              ) : (<>
+                <div className="bw-ig-connected">
+                  <div className="bw-ig-avatar-ph">{(igAccount?.username||"T")[0].toUpperCase()}</div>
+                  <div className="info">
+                    <div className="handle">✓ @{igAccount?.username||"troxcreations"} connected</div>
+                    <div className="stats">{fmtNum(igAccount?.followers_count)} followers · {igAccount?.media_count||"—"} posts</div>
+                  </div>
+                  <button className="bw-mini" style={{marginLeft:"auto"}} onClick={disconnectInstagram}>Disconnect</button>
+                </div>
+
+                <div className="bw-analytics-header">
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igAccount?.followers_count)}</div><div className="albl">Followers</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{igMedia.length}</div><div className="albl">Posts tracked</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igAvgReach)||"—"}</div><div className="albl">Avg reach</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igMedia.filter((p)=>p.insights?.saved).reduce((a,p)=>a+(p.insights.saved||0),0))||"—"}</div><div className="albl">Total saves</div></div>
+                </div>
+
+                <div className="bw-analytics-syncbar">
+                  <button className="bw-btn sm" onClick={syncInstagram} disabled={igSyncing}>{igSyncing?"Syncing…":"↻ Sync posts"}</button>
+                  {igLastSync && <span className="bw-analytics-synctime">Last synced {timeAgo(igLastSync)}</span>}
+                  {igMedia.length > 0 && <button className="bw-btn sm ghost" onClick={analyzeInstagram} disabled={busy==="ig_ai"}>{busy==="ig_ai"?"Analysing…":"AI analyse →"}</button>}
+                  {igError && <span style={{fontSize:12,color:"var(--rose)"}}>{igError}</span>}
+                </div>
+                {igSyncing && <div className="bw-load"><div className="bw-spin"/>Fetching {igAccount?.media_count||"your"} posts and insights…</div>}
+
+                {igMedia.length === 0 && !igSyncing && (
+                  <div className="bw-ig-nodata"><div className="big">No data yet</div>Hit Sync to pull your posts and their live performance numbers.</div>
+                )}
+
+                {igMedia.length > 0 && (<>
+                  <div className="bw-ig-grid">
+                    {igMedia.map((post, i) => {
+                      const reach = post.insights?.reach || 0;
+                      const saves = post.insights?.saved || 0;
+                      const eng = reach > 0 ? (((post.like_count||0)+(post.comments_count||0)+saves)/reach*100).toFixed(1) : null;
+                      const perfClass = reach > igAvgReach*1.3 ? "high" : reach < igAvgReach*0.7 && reach > 0 ? "low" : "mid";
+                      return (
+                        <div className={`bw-ig-post${reach > igAvgReach*1.3?" top":""}`} key={post.id} style={{animationDelay:i*35+"ms"}}>
+                          <div className="ptop">
+                            <span className="ptype">{post.media_type==="CAROUSEL_ALBUM"?"CAROUSEL":post.media_type}</span>
+                            <span className="pdate">{timeAgo(new Date(post.timestamp).getTime())}</span>
+                          </div>
+                          <div className="pcap">{(post.caption||"(no caption)").slice(0,90)}{(post.caption||"").length>90?"…":""}</div>
+                          <div className="bw-ig-metrics">
+                            <div className="bw-ig-metric"><div className="mv">{fmtNum(post.like_count||0)}</div><div className="ml">Likes</div></div>
+                            <div className="bw-ig-metric"><div className="mv">{fmtNum(post.comments_count||0)}</div><div className="ml">Cmts</div></div>
+                            {reach > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(reach)}</div><div className="ml">Reach</div></div>}
+                            {saves > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(saves)}</div><div className="ml">Saves</div></div>}
+                            {(post.insights?.plays||post.insights?.video_views) > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(post.insights?.plays||post.insights?.video_views)}</div><div className="ml">Plays</div></div>}
+                          </div>
+                          <div className="pfooter">
+                            {eng !== null ? <span className={`peng ${perfClass}`}>{perfClass==="high"?"▲ ":perfClass==="low"?"▼ ":"● "}{eng}% eng</span> : <span/>}
+                            {post.permalink && <a className="piglink" href={post.permalink} target="_blank" rel="noreferrer">View ↗</a>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>)}
+
+                {igAnalysis && (<>
+                  <h3 style={{fontFamily:"'Fraunces'",fontWeight:600,fontSize:18,marginBottom:8,color:"var(--ink)"}}>AI Analysis</h3>
+                  <div className="bw-out"><button className="bw-copy" onClick={() => copy(igAnalysis)}>copy</button>{igAnalysis}</div>
+                </>)}
+                {busy==="ig_ai" && <div className="bw-load"><div className="bw-spin"/>Reading your data and thinking…</div>}
+              </>)}
+            </>)}
+
             {tab === "Competition" && (<>
               <div className="bw-comp-add">
                 <input className="bw-input" placeholder="@competitorhandle" value={compInput} onChange={(e) => setCompInput(e.target.value)} onKeyDown={(e) => { if(e.key==="Enter") addCompetitor(); }}/>
@@ -732,6 +960,19 @@ Be specific, concise. Plain text, no markdown.`);
                     <button className="bw-btn sm" onClick={() => saveKey("claude")} disabled={!keyInput.claude.trim()}>{claudeKey?"Replace":"Save"}</button>
                   </div>
                   {keySaved==="claude"&&<div className="bw-savednote">✓ Claude key saved!</div>}
+                </div>
+                <h3 style={{marginTop:8}}>Instagram Live Analytics</h3>
+                <div className="bw-keyblock">
+                  <h4>Instagram Access Token {igToken&&<span style={{color:"var(--ok)",fontWeight:700,fontSize:12}}>✓ Connected</span>}</h4>
+                  <div className="kdesc">Required for the Analytics tab. Get it at <b>developers.facebook.com/tools/explorer</b>. Needs permissions: instagram_basic, pages_show_list, instagram_manage_insights.</div>
+                  {igAccount&&<div className="bw-keystatus set">✓ Connected as @{igAccount.username} ({fmtNum(igAccount.followers_count)} followers)</div>}
+                  {!igToken&&<div className="bw-keystatus unset">Not connected</div>}
+                  {igError&&<div className="bw-keystatus" style={{color:"var(--rose)"}}>{igError}</div>}
+                  <div className="bw-keyrow" style={{marginTop:10}}>
+                    <input className="bw-input" type="password" placeholder="Paste your access token…" value={igTokenInput} onChange={(e) => setIgTokenInput(e.target.value)}/>
+                    <button className={"bw-btn sm"+(igToken?"":" ok")} onClick={connectInstagram} disabled={!igTokenInput.trim()||igConnecting}>{igConnecting?"Connecting…":igToken?"Reconnect":"Connect"}</button>
+                  </div>
+                  {igToken&&<button className="bw-mini" style={{marginTop:8}} onClick={disconnectInstagram}>Disconnect Instagram</button>}
                 </div>
               </div>
             )}
