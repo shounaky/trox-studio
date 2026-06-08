@@ -1,6 +1,34 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const GEMINI_MODELS = [
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash-8b",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-2.0-flash",
+];
+
+async function callGemini(key, prompt) {
+  const genAI = new GoogleGenerativeAI(key);
+  let lastError;
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (e) {
+      lastError = e;
+      const msg = e.message || "";
+      if (msg.includes("404") || msg.includes("not found") || msg.includes("not supported")) {
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastError || new Error("No available Gemini model found for your API key.");
+}
+
 export async function POST(request) {
   try {
     const { prompt, provider = "gemini", apiKey } = await request.json();
@@ -19,16 +47,9 @@ export async function POST(request) {
       return Response.json({ text });
     }
 
-    // Gemini (default)
     const key = apiKey || process.env.GOOGLE_AI_KEY;
     if (!key) return Response.json({ error: "No Gemini API key found. Add it in the Settings tab." }, { status: 500 });
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel(
-      { model: "gemini-1.5-flash" },
-      { apiVersion: "v1" }
-    );
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const text = await callGemini(key, prompt);
     return Response.json({ text });
 
   } catch (error) {
