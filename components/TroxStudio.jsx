@@ -13,9 +13,10 @@ const CSS = `
   font-family:'Mulish',sans-serif; background:var(--paper); color:var(--ink);
   min-height:100vh; padding:0 0 70px; position:relative; overflow-x:hidden;
 }
-.bw-root::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.5;
+.bw-root::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:0;
   background:radial-gradient(700px 380px at 90% -8%,rgba(62,116,209,.10),transparent 60%),
              radial-gradient(620px 420px at -5% 105%,rgba(176,141,87,.10),transparent 60%); }
+.bw-wrap { position:relative; z-index:1; }
 .bw-topwave { display:block; width:100%; height:54px; }
 .bw-wrap { max-width:960px; margin:0 auto; padding:0 20px; position:relative; }
 .bw-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:6px 0 24px; }
@@ -501,10 +502,10 @@ Be specific, concise. Plain text, no markdown.`);
             <div className="bw-tag">AI social manager · handcrafted journals · growing @troxcreations</div>
           </div>
           <div className="bw-headright">
-            <div className="bw-aichip">
+            <button className="bw-aichip" onClick={() => setTab("Settings")} style={{cursor:"pointer",border:"1px solid var(--line)"}}>
               <span className={"dot" + (activeKey ? "" : " amber")}/>
-              {providerLabel} {activeKey ? "ready" : "— add key in Settings"}
-            </div>
+              {providerLabel} {activeKey ? "ready" : "— tap to add key"}
+            </button>
             {profile && !editing && (
               <div className="bw-brandchip"><span>Brand: <b>{profile.name}</b></span><button className="bw-edit" onClick={startEdit}>edit</button></div>
             )}
