@@ -1,37 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const GEMINI_MODELS = [
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash-8b",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-2.0-flash",
-];
-
-async function callGemini(key, prompt) {
-  const genAI = new GoogleGenerativeAI(key);
-  let lastError;
-  for (const modelName of GEMINI_MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return result.response.text().trim();
-    } catch (e) {
-      lastError = e;
-      const msg = e.message || "";
-      if (msg.includes("404") || msg.includes("not found") || msg.includes("not supported")) {
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError || new Error("No available Gemini model found for your API key.");
-}
+import Groq from "groq-sdk";
 
 export async function POST(request) {
   try {
-    const { prompt, provider = "gemini", apiKey } = await request.json();
+    const { prompt, provider = "groq", apiKey } = await request.json();
     if (!prompt) return Response.json({ error: "No prompt provided" }, { status: 400 });
 
     if (provider === "claude") {
@@ -47,9 +19,15 @@ export async function POST(request) {
       return Response.json({ text });
     }
 
-    const key = apiKey || process.env.GOOGLE_AI_KEY;
-    if (!key) return Response.json({ error: "No Gemini API key found. Add it in the Settings tab." }, { status: 500 });
-    const text = await callGemini(key, prompt);
+    const key = apiKey || process.env.GROQ_API_KEY;
+    if (!key) return Response.json({ error: "No Groq API key found. Add it in the Settings tab." }, { status: 500 });
+    const client = new Groq({ apiKey: key });
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1200,
+    });
+    const text = completion.choices[0]?.message?.content?.trim() || "";
     return Response.json({ text });
 
   } catch (error) {

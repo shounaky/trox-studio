@@ -240,10 +240,10 @@ export default function TroxStudio() {
   const [competitors, setCompetitors] = useState([]);
   const [compInput, setCompInput] = useState("");
   const [compAnalysis, setCompAnalysis] = useState("");
-  const [aiProvider, setAiProvider] = useState("gemini");
-  const [geminiKey, setGeminiKey] = useState("");
+  const [aiProvider, setAiProvider] = useState("groq");
+  const [groqKey, setGroqKey] = useState("");
   const [claudeKey, setClaudeKey] = useState("");
-  const [keyInput, setKeyInput] = useState({ gemini: "", claude: "" });
+  const [keyInput, setKeyInput] = useState({ groq: "", claude: "" });
   const [keySaved, setKeySaved] = useState("");
   const [tab, setTab] = useState("Dashboard");
   const [channel, setChannel] = useState("instagram");
@@ -271,7 +271,7 @@ export default function TroxStudio() {
     try { const r = localStorage.getItem("trox_followers"); if (r) setFollowers(JSON.parse(r)); } catch (e) {}
     try { const r = localStorage.getItem("trox_competitors"); if (r) setCompetitors(JSON.parse(r)); } catch (e) {}
     try { const r = localStorage.getItem("trox_ai_provider"); if (r) setAiProvider(r); } catch (e) {}
-    try { const r = localStorage.getItem("trox_gemini_key"); if (r) setGeminiKey(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_groq_key"); if (r) setGroqKey(r); } catch (e) {}
     try { const r = localStorage.getItem("trox_claude_key"); if (r) setClaudeKey(r); } catch (e) {}
     setLoaded(true);
   }, []);
@@ -288,14 +288,14 @@ export default function TroxStudio() {
   function saveKey(type) {
     const val = keyInput[type].trim();
     if (!val) return;
-    if (type === "gemini") { setGeminiKey(val); persist("trox_gemini_key", val); }
+    if (type === "groq") { setGroqKey(val); persist("trox_groq_key", val); }
     else { setClaudeKey(val); persist("trox_claude_key", val); }
     setKeyInput({ ...keyInput, [type]: "" });
     setKeySaved(type);
     setTimeout(() => setKeySaved(""), 2500);
   }
 
-  const activeKey = aiProvider === "gemini" ? geminiKey : claudeKey;
+  const activeKey = aiProvider === "groq" ? groqKey : claudeKey;
 
   async function callAI(prompt) {
     const res = await fetch("/api/claude", {
@@ -484,7 +484,7 @@ Be specific, concise. Plain text, no markdown.`);
   const withData = posts.filter((p) => p.metrics);
   const totalFollows = withData.reduce((a, p) => a + (+p.metrics.follows||0), 0);
   const bestSaves = withData.reduce((a, p) => Math.max(a, +p.metrics.saves||0), 0);
-  const providerLabel = aiProvider === "gemini" ? "Gemini (free)" : "Claude";
+  const providerLabel = aiProvider === "groq" ? "Groq (free)" : "Claude";
 
   if (!loaded) return <div className="bw-root"><style>{CSS}</style><div className="bw-wrap"><div className="bw-load"><div className="bw-spin" />opening the studio…</div></div></div>;
 
@@ -698,11 +698,11 @@ Be specific, concise. Plain text, no markdown.`);
                 <p className="sub">Your API key is saved in your browser only — never sent anywhere except the AI provider you choose. Switching providers never loses your Playbook or posts.</p>
                 <h3>Choose AI Provider</h3>
                 <div className="bw-providers">
-                  <div className={"bw-provider"+(aiProvider==="gemini"?" active":"")} onClick={() => selectProvider("gemini")}>
-                    <div className="pname">Google Gemini</div>
+                  <div className={"bw-provider"+(aiProvider==="groq"?" active":"")} onClick={() => selectProvider("groq")}>
+                    <div className="pname">Groq</div>
                     <span className="pbadge free">FREE</span>
-                    <div className="pdesc">Gemini 1.5 Flash. 1 million tokens/day free. No credit card needed. Get key at aistudio.google.com</div>
-                    {aiProvider==="gemini"&&<div className="pcheck">✓ Active</div>}
+                    <div className="pdesc">Llama 3.3 70B. Blazing fast, free forever. No credit card needed. Get key at console.groq.com</div>
+                    {aiProvider==="groq"&&<div className="pcheck">✓ Active</div>}
                   </div>
                   <div className={"bw-provider"+(aiProvider==="claude"?" active":"")} onClick={() => selectProvider("claude")}>
                     <div className="pname">Claude (Anthropic)</div>
@@ -712,15 +712,15 @@ Be specific, concise. Plain text, no markdown.`);
                   </div>
                 </div>
                 <div className="bw-keyblock">
-                  <h4>Gemini API Key</h4>
-                  <div className="kdesc">Get it free at <b>aistudio.google.com</b> → Get API Key → Create API key. Starts with <b>AIzaSy</b>.</div>
-                  {geminiKey&&<div className="bw-keystatus set">✓ Key saved: {maskKey(geminiKey)}</div>}
-                  {!geminiKey&&<div className="bw-keystatus unset">No key saved yet</div>}
+                  <h4>Groq API Key</h4>
+                  <div className="kdesc">Get it free at <b>console.groq.com</b> → API Keys → Create API Key. Starts with <b>gsk_</b>.</div>
+                  {groqKey&&<div className="bw-keystatus set">✓ Key saved: {maskKey(groqKey)}</div>}
+                  {!groqKey&&<div className="bw-keystatus unset">No key saved yet</div>}
                   <div className="bw-keyrow" style={{marginTop:10}}>
-                    <input className="bw-input" type="password" placeholder={geminiKey?"Paste new key to replace":"Paste your AIzaSy... key here"} value={keyInput.gemini} onChange={(e) => setKeyInput({...keyInput,gemini:e.target.value})}/>
-                    <button className={"bw-btn sm"+(geminiKey?"":" ok")} onClick={() => saveKey("gemini")} disabled={!keyInput.gemini.trim()}>{geminiKey?"Replace":"Save"}</button>
+                    <input className="bw-input" type="password" placeholder={groqKey?"Paste new key to replace":"Paste your gsk_... key here"} value={keyInput.groq} onChange={(e) => setKeyInput({...keyInput,groq:e.target.value})}/>
+                    <button className={"bw-btn sm"+(groqKey?"":" ok")} onClick={() => saveKey("groq")} disabled={!keyInput.groq.trim()}>{groqKey?"Replace":"Save"}</button>
                   </div>
-                  {keySaved==="gemini"&&<div className="bw-savednote">✓ Gemini key saved! You can start using the app.</div>}
+                  {keySaved==="groq"&&<div className="bw-savednote">✓ Groq key saved! You can start using the app.</div>}
                 </div>
                 <div className="bw-keyblock">
                   <h4>Claude API Key <span style={{color:"var(--muted)",fontWeight:400,fontSize:12}}>(optional)</span></h4>
