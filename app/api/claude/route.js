@@ -23,7 +23,7 @@ export async function POST(request) {
     const key = apiKey || process.env.GOOGLE_AI_KEY;
     if (!key) return Response.json({ error: "No Gemini API key found. Add it in the Settings tab." }, { status: 500 });
     const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     return Response.json({ text });
