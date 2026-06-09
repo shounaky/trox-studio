@@ -312,6 +312,11 @@ export default function TroxStudio() {
   const [igError, setIgError] = useState("");
   const [igAnalysis, setIgAnalysis] = useState("");
   const [igLastSync, setIgLastSync] = useState(null);
+  const [igAppId, setIgAppId] = useState("");
+  const [igAppSecret, setIgAppSecret] = useState("");
+  const [igAppIdInput, setIgAppIdInput] = useState("");
+  const [igAppSecretInput, setIgAppSecretInput] = useState("");
+  const [oauthStarting, setOauthStarting] = useState(false);
 
   useEffect(() => {
     let p = null;
@@ -330,6 +335,31 @@ export default function TroxStudio() {
     try { const r = localStorage.getItem("trox_ig_account"); if (r) setIgAccount(JSON.parse(r)); } catch (e) {}
     try { const r = localStorage.getItem("trox_ig_media"); if (r) setIgMedia(JSON.parse(r)); } catch (e) {}
     try { const r = localStorage.getItem("trox_ig_last_sync"); if (r) setIgLastSync(+r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_app_id"); if (r) setIgAppId(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_app_secret"); if (r) setIgAppSecret(r); } catch (e) {}
+    // Handle OAuth callback: token or error arrives as URL param
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tok = params.get("ig_token");
+      const igErr = params.get("ig_error");
+      if (tok || igErr) window.history.replaceState({}, "", window.location.pathname);
+      if (igErr) { setIgError(decodeURIComponent(igErr)); }
+      if (tok) {
+        const t = decodeURIComponent(tok);
+        setIgToken(t); persist("trox_ig_token", t);
+        // Auto-detect account
+        fetch("/api/instagram-analytics", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: t, action: "setup" }),
+        }).then((r) => r.json()).then((d) => {
+          if (!d.error) {
+            setIgAccountId(d.igAccountId); setIgAccount(d.account);
+            persist("trox_ig_account_id", d.igAccountId);
+            persist("trox_ig_account", d.account);
+          }
+        }).catch(() => {});
+      }
+    } catch (e) {}
     setLoaded(true);
   }, []);
 
@@ -418,6 +448,24 @@ Be data-driven and specific to Trox's premium journal brand and audience. Plain 
       setIgAnalysis(out);
     } catch (e) { setErr(e.message); }
     setBusy("");
+  }
+
+  async function startInstagramOAuth() {
+    const id = igAppIdInput.trim() || igAppId;
+    const secret = igAppSecretInput.trim() || igAppSecret;
+    if (!id || !secret) { setIgError("Enter your App ID and App Secret first."); return; }
+    setOauthStarting(true); setIgError("");
+    if (igAppIdInput.trim()) { setIgAppId(id); persist("trox_ig_app_id", id); }
+    if (igAppSecretInput.trim()) { setIgAppSecret(secret); persist("trox_ig_app_secret", secret); }
+    try {
+      const res = await fetch("/api/auth/instagram/start", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appId: id, appSecret: secret }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      window.location.href = data.oauthUrl;
+    } catch (e) { setIgError(e.message); setOauthStarting(false); }
   }
 
   function disconnectInstagram() {
@@ -786,18 +834,14 @@ Be specific, concise. Plain text, no markdown.`);
               {!igToken || !igAccountId ? (
                 <div className="bw-ig-setup">
                   <h3>Live Instagram Analytics</h3>
-                  <p className="sub">Connect your Instagram Business/Creator account to see real reach, saves, impressions and engagement for every post — then let AI tell you exactly what to make next.</p>
-                  <div className="bw-ig-steps">
-                    <div className="bw-ig-step"><span className="num">1</span><span>Make sure your Instagram is a <b>Business or Creator account</b>: Instagram → Settings → Account → Switch to Professional</span></div>
-                    <div className="bw-ig-step"><span className="num">2</span><span>Link it to a <b>Facebook Page</b>: Meta Accounts Centre → Add accounts → Connect Instagram</span></div>
-                    <div className="bw-ig-step"><span className="num">3</span><span>Create a <b>Meta Developer App</b>: <b>developers.facebook.com</b> → My Apps → Create App → Business</span></div>
-                    <div className="bw-ig-step"><span className="num">4</span><span>Open the <b>Graph API Explorer</b>: <b>developers.facebook.com/tools/explorer</b> → select your app → User Token → add permissions: <b>instagram_basic, pages_show_list, instagram_manage_insights</b> → Generate Token</span></div>
-                    <div className="bw-ig-step"><span className="num">5</span><span>Paste the token below and click Connect. Token expires in 60 days — paste a fresh one any time.</span></div>
-                  </div>
-                  {igError && <div className="bw-note" style={{color:"var(--rose)",marginBottom:12}}>{igError}</div>}
-                  <div className="bw-keyrow">
-                    <input className="bw-input" type="password" placeholder="Paste your access token…" value={igTokenInput} onChange={(e) => setIgTokenInput(e.target.value)} onKeyDown={(e) => { if(e.key==="Enter") connectInstagram(); }}/>
-                    <button className="bw-btn sm ok" onClick={connectInstagram} disabled={!igTokenInput.trim()||igConnecting}>{igConnecting?"Connecting…":"Connect"}</button>
+                  <p className="sub">See real reach, saves, impressions and engagement for every post — then let AI tell you exactly what to make next.</p>
+                  {igError && <div style={{fontSize:12,color:"var(--rose)",marginBottom:12,padding:"8px 12px",background:"#fef2f2",borderRadius:8}}>{igError}</div>}
+                  <p style={{fontSize:13,color:"var(--ink-2)",marginBottom:16}}>Set up your connection in the <button className="bw-edit" onClick={() => setTab("Settings")}>Settings tab →</button> It takes about 5 minutes and then connecting is one click forever.</p>
+                  <div style={{background:"var(--card-2)",border:"1px solid var(--line)",borderRadius:12,padding:"14px 16px"}}>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"var(--ink)"}}>What you need:</div>
+                    <div className="bw-ig-step"><span className="num">1</span><span>Instagram converted to <b>Business or Creator</b> account</span></div>
+                    <div className="bw-ig-step"><span className="num">2</span><span>Instagram linked to a <b>Facebook Page</b></span></div>
+                    <div className="bw-ig-step"><span className="num">3</span><span>A <b>Meta Developer App</b> created (free, 2 min at developers.facebook.com)</span></div>
                   </div>
                 </div>
               ) : (<>
@@ -963,16 +1007,29 @@ Be specific, concise. Plain text, no markdown.`);
                 </div>
                 <h3 style={{marginTop:8}}>Instagram Live Analytics</h3>
                 <div className="bw-keyblock">
-                  <h4>Instagram Access Token {igToken&&<span style={{color:"var(--ok)",fontWeight:700,fontSize:12}}>✓ Connected</span>}</h4>
-                  <div className="kdesc">Required for the Analytics tab. Get it at <b>developers.facebook.com/tools/explorer</b>. Needs permissions: instagram_basic, pages_show_list, instagram_manage_insights.</div>
-                  {igAccount&&<div className="bw-keystatus set">✓ Connected as @{igAccount.username} ({fmtNum(igAccount.followers_count)} followers)</div>}
-                  {!igToken&&<div className="bw-keystatus unset">Not connected</div>}
-                  {igError&&<div className="bw-keystatus" style={{color:"var(--rose)"}}>{igError}</div>}
-                  <div className="bw-keyrow" style={{marginTop:10}}>
-                    <input className="bw-input" type="password" placeholder="Paste your access token…" value={igTokenInput} onChange={(e) => setIgTokenInput(e.target.value)}/>
-                    <button className={"bw-btn sm"+(igToken?"":" ok")} onClick={connectInstagram} disabled={!igTokenInput.trim()||igConnecting}>{igConnecting?"Connecting…":igToken?"Reconnect":"Connect"}</button>
+                  <h4>Connect Instagram {igAccount&&<span style={{color:"var(--ok)",fontWeight:700,fontSize:12}}>✓ @{igAccount.username}</span>}</h4>
+                  <div className="kdesc">One-time setup — then reconnecting is a single click. Your Instagram must be a <b>Business or Creator account</b> linked to a Facebook Page.</div>
+                  {igError&&<div style={{fontSize:12,color:"var(--rose)",marginBottom:8,padding:"8px 10px",background:"#fef2f2",borderRadius:8}}>{igError}</div>}
+                  {igAccount
+                    ? <div className="bw-ig-connected" style={{marginBottom:12}}><div className="bw-ig-avatar-ph">{(igAccount.username||"T")[0].toUpperCase()}</div><div className="info"><div className="handle">✓ Connected as @{igAccount.username}</div><div className="stats">{fmtNum(igAccount.followers_count)} followers</div></div><button className="bw-mini" style={{marginLeft:"auto"}} onClick={disconnectInstagram}>Disconnect</button></div>
+                    : null
+                  }
+                  <div style={{background:"var(--card-2)",border:"1px solid var(--line)",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+                    <div style={{fontSize:11.5,fontWeight:800,color:"var(--blue)",marginBottom:10,letterSpacing:.4,textTransform:"uppercase"}}>One-time setup (3 steps)</div>
+                    <div className="bw-ig-step"><span className="num">1</span><span>Go to <b>developers.facebook.com</b> → <b>My Apps</b> → <b>Create App</b> → choose <b>Business</b> → give it any name → Create</span></div>
+                    <div className="bw-ig-step"><span className="num">2</span><span>Inside your new app → left sidebar → <b>App settings → Basic</b> → copy your <b>App ID</b> and <b>App Secret</b> and paste them below</span></div>
+                    <div className="bw-ig-step"><span className="num">3</span><span>Still in the app → left sidebar → <b>Instagram → API setup</b> → scroll to <b>OAuth Redirect URIs</b> → add exactly this URL:<br/><span style={{fontFamily:"monospace",fontSize:11,background:"var(--card)",padding:"3px 7px",borderRadius:5,display:"inline-block",marginTop:4,wordBreak:"break-all"}}>{typeof window !== "undefined" ? window.location.origin : "https://your-vercel-url"}/api/auth/instagram/callback</span></span></div>
                   </div>
-                  {igToken&&<button className="bw-mini" style={{marginTop:8}} onClick={disconnectInstagram}>Disconnect Instagram</button>}
+                  <div className="bw-field" style={{marginBottom:10}}>
+                    <label style={{fontSize:11,fontWeight:800,color:"var(--blue)",display:"block",marginBottom:5,letterSpacing:.5,textTransform:"uppercase"}}>App ID</label>
+                    <input className="bw-input" placeholder={igAppId?"App ID saved — enter new to update":"Paste App ID (numbers only)"} value={igAppIdInput} onChange={(e) => setIgAppIdInput(e.target.value)}/>
+                  </div>
+                  <div className="bw-field" style={{marginBottom:14}}>
+                    <label style={{fontSize:11,fontWeight:800,color:"var(--blue)",display:"block",marginBottom:5,letterSpacing:.5,textTransform:"uppercase"}}>App Secret</label>
+                    <input className="bw-input" type="password" placeholder={igAppSecret?"App Secret saved — enter new to update":"Paste App Secret"} value={igAppSecretInput} onChange={(e) => setIgAppSecretInput(e.target.value)}/>
+                  </div>
+                  <button className={"bw-btn"+(igAccount?" ghost":"")} style={{width:"100%"}} onClick={startInstagramOAuth} disabled={oauthStarting||(!igAppId&&!igAppIdInput.trim())||(!igAppSecret&&!igAppSecretInput.trim())}>{oauthStarting?"Opening Facebook login…":igAccount?"Reconnect Instagram →":"Connect Instagram →"}</button>
+                  <div style={{fontSize:11,color:"var(--muted)",marginTop:8,lineHeight:1.5}}>Clicking Connect opens Facebook login in this tab. After you approve, you land back here automatically with your account connected.</div>
                 </div>
               </div>
             )}
