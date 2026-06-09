@@ -1,4 +1,5 @@
 import "./globals.css";
+import "../styles/studio.css";
 
 export const metadata = {
   title: "Trox Studio",

@@ -157,26 +157,26 @@ The platform will NOT be:
 
 | ID | Feature | Status |
 |---|---|---|
-| FR-016 | Content Calendar — visual weekly/monthly scheduling view | Planned |
-| FR-017 | Direct Publishing — post to Instagram, Pinterest without leaving the app | Planned |
-| FR-018 | Trend Monitoring — real-time trend discovery for relevant niches | Planned |
-| FR-019 | AI Image Brief Generator — detailed art direction for Canva/designer | Planned |
-| FR-020 | Multi-brand Workspaces — manage multiple brand accounts | Planned |
-| FR-021 | User Authentication — login, accounts, session management | Planned |
-| FR-022 | Persistent Backend — PostgreSQL database replacing localStorage | Planned |
-| FR-023 | Pinterest Analytics — scrape and analyse Pinterest performance | Planned |
-| FR-024 | Story Analytics — Instagram Stories performance tracking | Planned |
-| FR-025 | Automated Weekly Report — AI-generated summary emailed weekly | Planned |
+| FR-016 | Content Calendar — visual weekly/monthly scheduling view | Done |
+| FR-017 | Direct Publishing — post to Instagram, Pinterest without leaving the app | Done (pending Meta app review) |
+| FR-018 | Trend Monitoring — real-time trend discovery for relevant niches | Done |
+| FR-019 | AI Image Brief Generator — detailed art direction for Canva/designer | Done |
+| FR-020 | Multi-brand Workspaces — manage multiple brand accounts | Foundation done (Supabase schema ready) |
+| FR-021 | User Authentication — login, accounts, session management | Done (requires Supabase env vars) |
+| FR-022 | Persistent Backend — PostgreSQL database replacing localStorage | Done (migration ready, localStorage fallback active) |
+| FR-023 | Pinterest Analytics — scrape and analyse Pinterest performance | Placeholder (Pinterest OAuth needed) |
+| FR-024 | Story Analytics — Instagram Stories performance tracking | Done (requires instagram_manage_insights permission) |
+| FR-025 | Automated Weekly Report — AI-generated summary emailed weekly | Done (in-app; email requires Phase 3 email service) |
 
 ### Phase 3 — Enterprise
 
 | ID | Feature | Status |
 |---|---|---|
-| FR-026 | Multi-user collaboration — team roles and approval workflows | Future |
-| FR-027 | Agency mode — white-label client workspaces | Future |
-| FR-028 | Webhook integrations — Zapier/Make/n8n compatible events | Future |
-| FR-029 | API access — public REST API for enterprise integrations | Future |
-| FR-030 | SSO — Google/Okta login for enterprise | Future |
+| FR-026 | Multi-user collaboration — team roles and approval workflows | Foundation done (RBAC schema in migration) |
+| FR-027 | Agency mode — white-label client workspaces | Foundation done (multi-brand schema supports this) |
+| FR-028 | Webhook integrations — Zapier/Make/n8n compatible events | Done |
+| FR-029 | API access — public REST API for enterprise integrations | Done |
+| FR-030 | SSO — Google/Okta login for enterprise | Done (Google OAuth via Supabase) |
 
 ---
 

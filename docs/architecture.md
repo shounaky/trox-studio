@@ -77,24 +77,55 @@ External Integrations
 
 ---
 
-## Current File Structure (Phase 1)
+## Current File Structure (Phase 2 in progress)
 
 ```
 /
 ├── app/
-│   ├── page.js                          # Root page, renders TroxStudio
+│   ├── page.js                              # Root page, renders TroxStudio
+│   ├── layout.js                            # Root layout, imports CSS
+│   ├── globals.css                          # Base reset
+│   ├── (auth)/
+│   │   ├── login/page.js                    # FR-021 Login (Supabase Auth)
+│   │   └── register/page.js                 # FR-021 Register
 │   └── api/
-│       ├── claude/route.js              # AI proxy (Groq + Claude)
-│       ├── instagram/route.js           # Public profile scraper
-│       ├── instagram-session/route.js   # Session cookie scraper
-│       ├── instagram-comments/route.js  # Comments via session
-│       ├── instagram-analytics/route.js # Graph API analytics
+│       ├── claude/route.js                  # AI proxy (Groq + Claude)
+│       ├── instagram/route.js               # Public profile scraper
+│       ├── instagram-session/route.js       # Session cookie scraper
+│       ├── instagram-comments/route.js      # Comments via session
+│       ├── instagram-analytics/route.js     # Graph API analytics
+│       ├── trends/route.js                  # FR-018 Trend discovery
+│       ├── publish/instagram/route.js       # FR-017 Direct publishing
+│       ├── webhooks/route.js                # FR-028 Webhook dispatch
+│       ├── apikeys/route.js                 # FR-029 API key management
 │       └── auth/instagram/
-│           ├── start/route.js           # OAuth initiation
-│           └── callback/route.js        # OAuth token exchange
+│           ├── start/route.js               # OAuth initiation
+│           └── callback/route.js            # OAuth token exchange
 ├── components/
-│   └── TroxStudio.jsx                   # Entire frontend (monolithic)
-├── docs/                                # This documentation
+│   ├── TroxStudio.jsx                       # Main orchestrator (state + layout, 772 lines)
+│   └── tabs/
+│       ├── DashboardTab.jsx                 # Dashboard + weekly report (FR-025)
+│       ├── CreateTab.jsx                    # Content creation + image brief (FR-019)
+│       ├── PostsTab.jsx                     # Posts library
+│       ├── CalendarTab.jsx                  # FR-016 Content calendar
+│       ├── TrendsTab.jsx                    # FR-018 Trend monitoring
+│       ├── AnalyticsTab.jsx                 # Instagram + Pinterest + Stories analytics
+│       ├── CompetitionTab.jsx               # Competitor tracking
+│       ├── CoachTab.jsx                     # Growth coach
+│       └── SettingsTab.jsx                  # Settings + developer tools
+├── lib/
+│   ├── constants.js                         # CHANNELS, FORMATS, TABS, etc.
+│   ├── utils.js                             # timeAgo, fmtNum, buildInstructions, etc.
+│   ├── storage.js                           # localStorage helpers + KEYS map
+│   ├── supabase.js                          # Supabase client (optional)
+│   ├── db.js                                # Data abstraction (Supabase + localStorage)
+│   └── prompts.js                           # BRAND_KB, TROX_DEFAULT, learnCtx
+├── styles/
+│   └── studio.css                           # All component CSS (imported in layout.js)
+├── supabase/
+│   └── migrations/
+│       └── 0001_initial.sql                 # FR-022 PostgreSQL schema
+├── docs/                                    # This documentation
 └── public/
 ```
 

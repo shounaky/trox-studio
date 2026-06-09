@@ -244,3 +244,63 @@ Each record follows this structure:
 - Users accustomed to numeric dashboards may find text analysis unfamiliar
 
 **Revisit when:** Phase 2 database is in place and real metrics can be stored and charted historically.
+
+---
+
+## ADR-010 — UI Architecture: Tab Component Decomposition (Phase 2)
+
+**Date:** 2026-06-09
+
+**Decision:** Decompose the monolithic `TroxStudio.jsx` into a main orchestrator (`TroxStudio.jsx`, 772 lines) and nine tab components in `components/tabs/`. Extract CSS to `styles/studio.css`, constants to `lib/constants.js`, utilities to `lib/utils.js`, storage helpers to `lib/storage.js`, and prompts to `lib/prompts.js`.
+
+**Reason:**
+- Rule 9 required decomposition once TroxStudio.jsx exceeded 1,200 lines (was at 1,271)
+- Adding Phase 2 features (Calendar, Trends, Image Brief, Weekly Report) required ~400+ more lines — impossible in the monolith
+- Tab components are independently readable and maintainable
+- CSS moved to a file (not a template literal string) enables syntax highlighting, linting, and editor support
+
+**Alternatives considered:**
+- Context API for state sharing: Avoids prop drilling but adds abstraction overhead; props are sufficient for current feature set
+- Route-per-tab (Next.js pages): Correct for Phase 3 with deep-linking needs; over-engineered now
+- Keep monolith, increase line limit: Violates Rule 9; file becomes unworkable for AI-assisted development
+
+**Trade-offs:**
+- Props interface between TroxStudio.jsx and tab components is wide (~20+ props each) — acceptable for current scale
+- No code splitting per tab (all tabs load with the page) — acceptable; total JS bundle is 126KB first load
+
+**Revisit when:** Any tab component exceeds 600 lines, or when we need per-tab route-level code splitting.
+
+---
+
+## ADR-011 — Phase 2 Feature Foundations
+
+**Date:** 2026-06-09
+
+**Decision:** Implement Phase 2 (FR-016 to FR-025) and Phase 3 (FR-026 to FR-030) foundations in a single release:
+
+| FR | Feature | Implementation |
+|---|---|---|
+| FR-016 | Content Calendar | Monthly grid + scheduling in localStorage, AI plan generation |
+| FR-017 | Direct Publishing | Instagram Graph API container/publish endpoints (requires app review) |
+| FR-018 | Trend Monitoring | Dedicated `/api/trends` route + AI trend discovery |
+| FR-019 | Image Brief | AI art direction generator in Create tab |
+| FR-020 | Multi-brand | KEYS.workspace in storage, CSS workspace switcher, Supabase schema prepared |
+| FR-021 | Authentication | Login/register pages at `/login` and `/register` using Supabase Auth |
+| FR-022 | Persistent Backend | `lib/supabase.js` + `lib/db.js` abstraction layer, SQL migration in `supabase/migrations/` |
+| FR-023 | Pinterest Analytics | UI placeholder with connect flow (Pinterest OAuth required) |
+| FR-024 | Story Analytics | UI tab + Graph API endpoint (requires `instagram_manage_insights` scope) |
+| FR-025 | Weekly Report | AI-generated dashboard report with webhook dispatch |
+| FR-026 | Multi-user | RBAC schema in SQL migration; memberships table |
+| FR-027 | Agency mode | Multi-brand Supabase schema supports this |
+| FR-028 | Webhooks | `/api/webhooks` dispatch endpoint, webhook URL storage in Settings |
+| FR-029 | Public API | `/api/apikeys` key generation, `X-API-Key` auth on webhook endpoint |
+| FR-030 | SSO | Supabase OAuth providers (Google) wired in login page |
+
+**Reason:** User directive: "Start with phases complete all phases." Building all foundations in one release ensures the architecture is in place before adding complexity.
+
+**Trade-offs:**
+- Some features have no backend (Supabase not yet configured) — they degrade gracefully to localStorage or show setup guidance
+- Direct publishing requires Meta app review which can take weeks — the API route is ready but UI is limited until approved
+- Pinterest OAuth not yet implemented — UI shows "coming soon" placeholder
+
+**Revisit when:** Supabase environment variables are added to Vercel — at that point auth and persistent DB become live.
