@@ -319,6 +319,9 @@ export default function TroxStudio() {
   const [oauthStarting, setOauthStarting] = useState(false);
   const [igSessionId, setIgSessionId] = useState("");
   const [igSessionInput, setIgSessionInput] = useState("");
+  const [importInput, setImportInput] = useState("");
+  const [importMsg, setImportMsg] = useState("");
+  const [igAnalysisMode, setIgAnalysisMode] = useState("full");
 
   useEffect(() => {
     let p = null;
@@ -426,31 +429,173 @@ export default function TroxStudio() {
     setIgSyncing(false);
   }
 
-  async function analyzeInstagram() {
+  async function analyzeInstagram(mode = "full") {
     if (!igMedia.length || noKeyGuard()) return;
-    setBusy("ig_ai"); setIgAnalysis(""); setErr("");
-    const avgReach = igMedia.filter((p) => p.insights?.reach).reduce((a, p) => a + (p.insights.reach||0), 0) / (igMedia.filter((p) => p.insights?.reach).length || 1);
-    const postsSummary = igMedia.slice(0, 20).map((p) => `${p.media_type} | ${new Date(p.timestamp).toLocaleDateString()} | ♥ ${p.like_count} 💬 ${p.comments_count} 👁 ${p.insights?.reach||"?"} 🔖 ${p.insights?.saved||"?"} | "${(p.caption||"").slice(0,80)}"`).join("\n");
+    setBusy("ig_ai_" + mode); setIgAnalysis(""); setErr("");
+
+    // Build rich post corpus
+    const postCorpus = igMedia.map((p, i) => {
+      const hashtags = ((p.caption||"").match(/#\w+/g)||[]).join(" ");
+      const date = new Date(p.timestamp);
+      const metrics = [
+        `♥${p.like_count||0}`,
+        `💬${p.comments_count||0}`,
+        p.play_count ? `▶${p.play_count}` : null,
+        p.insights?.reach ? `👁${p.insights.reach}` : null,
+        p.insights?.saved ? `🔖${p.insights.saved}` : null,
+      ].filter(Boolean).join(" ");
+      const commentSnippet = p._comments?.length
+        ? `\n  Top comments: ${p._comments.slice(0,3).map(c=>`"${c.text.slice(0,60)}"`).join(" | ")}`
+        : "";
+      return `[${i+1}] ${date.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"})} | ${p.is_reel?"REEL":p.media_type} | ${metrics}\nCaption: ${(p.caption||"(none)").slice(0,350)}${(p.caption||"").length>350?"…":""}${hashtags?`\nHashtags: ${hashtags}`:""}${commentSnippet}`;
+    }).join("\n\n");
+
+    // Compute aggregate patterns
+    const byType = {}, byDay = {}, byHour = {};
+    for (const p of igMedia) {
+      const t = p.is_reel ? "REEL" : p.media_type === "CAROUSEL_ALBUM" ? "CAROUSEL" : "IMAGE/POST";
+      byType[t] = (byType[t]||0) + 1;
+      const d = new Date(p.timestamp);
+      const day = d.toLocaleDateString("en-US",{weekday:"short"});
+      const hr = d.getHours();
+      byDay[day] = (byDay[day]||0)+1;
+      byHour[hr] = (byHour[hr]||0)+1;
+    }
+    const topDay = Object.entries(byDay).sort(([,a],[,b])=>b-a)[0]?.[0]||"unknown";
+    const topHour = Object.entries(byHour).sort(([,a],[,b])=>b-a)[0]?.[0]||"unknown";
+    const avgLikes = Math.round(igMedia.reduce((a,p)=>a+(p.like_count||0),0)/igMedia.length);
+    const avgComments = Math.round(igMedia.reduce((a,p)=>a+(p.comments_count||0),0)/igMedia.length);
+    const topPost = [...igMedia].sort((a,b)=>((b.like_count||0)+(b.comments_count||0))-((a.like_count||0)+(a.comments_count||0)))[0];
+    const allHashtags = igMedia.flatMap(p=>((p.caption||"").match(/#\w+/g)||[]));
+    const hFreq = {};
+    allHashtags.forEach(h=>{hFreq[h]=(hFreq[h]||0)+1;});
+    const topHashtags = Object.entries(hFreq).sort(([,a],[,b])=>b-a).slice(0,15).map(([h,n])=>`${h}(×${n})`).join(", ");
+
+    const prompts = {
+      full: `Produce a FULL CONTENT INTELLIGENCE REPORT:
+
+1. BRAND VOICE FINGERPRINT
+   - Writing style: sentence length, punctuation style, emotional register
+   - Signature opening hooks (how do they start captions?)
+   - Signature closing CTAs (how do captions end?)
+   - Recurring phrases, words, themes across all posts
+   - What makes their voice unmistakably "Trox"
+
+2. CAMPAIGNS & CONTENT SERIES DETECTED
+   - Identify every recurring content series (grouped by theme, occasion, product line)
+   - Name each series, list the post numbers that belong to it, date range
+   - Score each series by average engagement vs their mean (${avgLikes} likes avg)
+
+3. STORYTELLING ARCHITECTURE
+   - What narrative frameworks do they use? (hero's journey, before/after, philosophy drop, product reveal, etc.)
+   - Are they telling founder stories? Customer transformation stories? Philosophy pieces?
+   - How do Reels vs Posts differ in storytelling approach?
+   - What story types are MISSING that their audience would respond to?
+
+4. HASHTAG STRATEGY AUDIT
+   - What hashtag clusters are they using? (niche, community, occasion, product)
+   - Are they reaching too-large or too-small audiences?
+   - Which hashtags are working against them (too competitive or irrelevant)?
+   - 8 specific hashtags they should add immediately
+
+5. POSTING PATTERNS & CONTENT CALENDAR
+   - Frequency and consistency — are there gaps?
+   - Peak day: ${topDay}, peak hour: ${topHour}:00 — is this optimal for their audience?
+   - What should their ideal weekly content calendar look like?
+
+6. ENGAGEMENT ANALYSIS
+   - Which post [give post numbers] got the most engagement and why exactly?
+   - Which format drives more comments (community) vs likes (passive)?
+   - What content correlates with follower comments vs silent likes?
+   - Top post was: "${(topPost?.caption||"").slice(0,100)}" — why did this work?
+
+7. WHAT TO DO IN THE NEXT 30 DAYS
+   - 5 specific post briefs with: Format, Hook, Core message, Hashtag cluster, Best posting day
+   - One campaign concept (series of 4-6 posts) that fits their brand perfectly
+   - The single thing they must stop doing immediately`,
+
+      voice: `Analyse ONLY the brand voice and storytelling style of @troxcreations across all ${igMedia.length} posts. Cover: (1) their linguistic fingerprint — how they uniquely write, (2) caption structure patterns — how posts are built from hook to CTA, (3) emotional register — what feelings they invoke, (4) what is missing from their voice that premium journal brands use, (5) give them a 3-sentence "voice guide" they can use when creating new content.`,
+
+      campaigns: `Identify ALL content campaigns and series in these ${igMedia.length} posts. For each series: name it, list which posts (by number), describe the theme, rate engagement. Then recommend 2 new campaign concepts specifically for Trox's product lines (Zodiac, VMKG, Legacy, Life Pillar).`,
+
+      hashtags: `Do a complete hashtag strategy audit of these ${igMedia.length} posts. Their top hashtags used: ${topHashtags}. Analyse: which clusters are working, which are dead weight, what's missing for reaching gift-buyers vs journaling community vs zodiac/astrology audience. Give an exact hashtag kit of 25 hashtags split into 4 buckets they should copy-paste for every post type.`,
+    };
+
     try {
       const out = await callAI(`${learnCtx()}
 
-LIVE INSTAGRAM DATA for @${igAccount?.username||"troxcreations"} (${igAccount?.followers_count} followers):
-Average post reach: ${Math.round(avgReach)}
+@${igAccount?.username||"troxcreations"} — ${igAccount?.followers_count} followers — ${igMedia.length} posts analysed
+Format breakdown: ${Object.entries(byType).map(([t,n])=>`${t}: ${n}`).join(", ")}
+Avg engagement: ${avgLikes} likes, ${avgComments} comments per post
 
-RECENT POSTS (type | date | likes | comments | reach | saves | caption):
-${postsSummary}
+ALL ${igMedia.length} POSTS WITH FULL CAPTIONS, HASHTAGS AND COMMENTS:
+${postCorpus}
 
-Analyse this real performance data for Trox Creations and give:
-1. TOP FORMATS — which post types (Reels/Carousels/Posts) drive the most reach and saves
-2. BEST THEMES — what content angles resonate most (use caption context)
-3. UNDERPERFORMING — what is dragging down numbers and why
-4. NEXT 3 POSTS — specific, ready-to-brief ideas based on what the data says works
-5. ONE QUICK WIN — something to do this week
+${prompts[mode]||prompts.full}
 
-Be data-driven and specific to Trox's premium journal brand and audience. Plain text, no markdown.`);
+Be extremely specific — reference actual post captions and numbers from the data. Plain text, no markdown symbols.`);
       setIgAnalysis(out);
     } catch (e) { setErr(e.message); }
     setBusy("");
+  }
+
+  async function fetchTopCommentsThenAnalyze() {
+    if (!igSessionId || !igMedia.length) { analyzeInstagram("full"); return; }
+    setBusy("ig_comments"); setErr("");
+    // Fetch comments for top 8 posts by engagement
+    const top8 = [...igMedia]
+      .sort((a,b)=>((b.like_count||0)+(b.comments_count||0))-((a.like_count||0)+(a.comments_count||0)))
+      .slice(0,8);
+    const updated = [...igMedia];
+    await Promise.all(top8.map(async (post) => {
+      try {
+        const res = await fetch("/api/instagram-comments", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ sessionId: igSessionId, mediaId: post.id }),
+        });
+        const data = await res.json();
+        const idx = updated.findIndex(p=>p.id===post.id);
+        if (idx !== -1 && data.comments?.length) updated[idx] = { ...updated[idx], _comments: data.comments };
+      } catch {}
+    }));
+    setIgMedia(updated); persist("trox_ig_media", updated);
+    setBusy("");
+    analyzeInstagram("full");
+  }
+
+  function importInsightsJSON(raw) {
+    try {
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      // Handle Instagram "Download Your Data" media_metrics format
+      const entries = parsed?.media_owner_statistics || parsed?.organic_insights_media || [];
+      if (!entries.length) return { imported: 0, error: "Unrecognised format. Paste the content of media_metrics.json from your Instagram data export." };
+      let imported = 0;
+      const updated = [...igMedia];
+      for (const entry of entries) {
+        const smd = entry.string_map_data || {};
+        const reach = parseInt(smd["Reach"]?.value || smd["reach"]?.value || "0");
+        const saves = parseInt(smd["Saves"]?.value || smd["saves"]?.value || smd["Saved"]?.value || "0");
+        const impressions = parseInt(smd["Impressions"]?.value || smd["impressions"]?.value || "0");
+        const ts = smd["Creation Timestamp"]?.timestamp;
+        const caption = entry.title?.replace(/^Post - /,"").slice(0,80) || "";
+        if (!ts && !caption) continue;
+        // Match by timestamp (±5 min) or caption prefix
+        const idx = updated.findIndex(p => {
+          const diff = Math.abs(new Date(p.timestamp).getTime()/1000 - ts);
+          if (ts && diff < 300) return true;
+          if (caption && p.caption?.startsWith(caption.slice(0,40))) return true;
+          return false;
+        });
+        if (idx !== -1) {
+          updated[idx] = { ...updated[idx], insights: { ...updated[idx].insights, reach, saved: saves, impressions } };
+          imported++;
+        }
+      }
+      if (imported > 0) { setIgMedia(updated); persist("trox_ig_media", updated); }
+      return { imported };
+    } catch (e) {
+      return { imported: 0, error: "Could not parse file: " + e.message };
+    }
   }
 
   async function startInstagramOAuth() {
@@ -898,9 +1043,21 @@ Be specific, concise. Plain text, no markdown.`);
                 <div className="bw-analytics-syncbar">
                   <button className="bw-btn sm" onClick={igToken && igAccountId ? syncInstagram : syncWithSession} disabled={igSyncing}>{igSyncing?"Syncing…":"↻ Sync posts"}</button>
                   {igLastSync && <span className="bw-analytics-synctime">Last synced {timeAgo(igLastSync)}</span>}
-                  {igMedia.length > 0 && <button className="bw-btn sm ghost" onClick={analyzeInstagram} disabled={busy==="ig_ai"}>{busy==="ig_ai"?"Analysing…":"AI analyse →"}</button>}
                   {igError && <span style={{fontSize:12,color:"var(--rose)"}}>{igError}</span>}
                 </div>
+                {igMedia.length > 0 && (
+                  <div style={{background:"var(--card)",border:"1px solid var(--line)",borderRadius:14,padding:"16px",marginBottom:18}}>
+                    <div style={{fontFamily:"'Fraunces'",fontWeight:600,fontSize:15,marginBottom:4}}>Deep Content Intelligence</div>
+                    <div style={{fontSize:12,color:"var(--ink-2)",marginBottom:12}}>AI reads every caption, comment, hashtag and pattern across all {igMedia.length} posts. Pick what you want to analyse.</div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <button className="bw-btn sm" onClick={fetchTopCommentsThenAnalyze} disabled={busy.startsWith("ig_")}>{busy==="ig_ai_full"||busy==="ig_comments"?"Analysing…":"Full brand audit →"}</button>
+                      <button className="bw-btn sm ghost" onClick={() => analyzeInstagram("voice")} disabled={busy.startsWith("ig_")}>{busy==="ig_ai_voice"?"…":"Voice & storytelling"}</button>
+                      <button className="bw-btn sm ghost" onClick={() => analyzeInstagram("campaigns")} disabled={busy.startsWith("ig_")}>{busy==="ig_ai_campaigns"?"…":"Campaigns & series"}</button>
+                      <button className="bw-btn sm ghost" onClick={() => analyzeInstagram("hashtags")} disabled={busy.startsWith("ig_")}>{busy==="ig_ai_hashtags"?"…":"Hashtag audit"}</button>
+                    </div>
+                    {busy.startsWith("ig_ai") && <div className="bw-load" style={{paddingTop:12,paddingBottom:0}}><div className="bw-spin"/>Reading {igMedia.length} posts, fetching comments, building report…</div>}
+                  </div>
+                )}
                 {igSyncing && <div className="bw-load"><div className="bw-spin"/>Fetching {igAccount?.media_count||"your"} posts and insights…</div>}
 
                 {igMedia.length === 0 && !igSyncing && (
@@ -944,10 +1101,30 @@ Be specific, concise. Plain text, no markdown.`);
                 </>)}
 
                 {igAnalysis && (<>
-                  <h3 style={{fontFamily:"'Fraunces'",fontWeight:600,fontSize:18,marginBottom:8,color:"var(--ink)"}}>AI Analysis</h3>
-                  <div className="bw-out"><button className="bw-copy" onClick={() => copy(igAnalysis)}>copy</button>{igAnalysis}</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <h3 style={{fontFamily:"'Fraunces'",fontWeight:600,fontSize:18,color:"var(--ink)"}}>Content Intelligence Report</h3>
+                    <button className="bw-copy" style={{position:"static",float:"none"}} onClick={() => copy(igAnalysis)}>copy</button>
+                  </div>
+                  <div className="bw-out">{igAnalysis}</div>
                 </>)}
-                {busy==="ig_ai" && <div className="bw-load"><div className="bw-spin"/>Reading your data and thinking…</div>}
+
+                <div style={{background:"var(--card)",border:"1px solid var(--line)",borderRadius:14,padding:"16px",marginTop:20}}>
+                  <h4 style={{fontFamily:"'Fraunces'",fontWeight:600,fontSize:15,marginBottom:4}}>Import Reach, Saves & Impressions</h4>
+                  <div style={{fontSize:12,color:"var(--ink-2)",marginBottom:12,lineHeight:1.6}}>
+                    To get private metrics (reach, saves, impressions) without a developer app:<br/>
+                    1. Open Instagram → tap your profile → tap <b>≡</b> → <b>Your activity</b> → <b>Download your information</b><br/>
+                    2. Select <b>Some of your information</b> → tick <b>Posts</b> under Content → tap <b>Download or transfer</b> → <b>Download to device</b><br/>
+                    3. When you get the email, download the ZIP → open it → find <b>media_metrics.json</b><br/>
+                    4. Open that file in a text editor, select all, paste below
+                  </div>
+                  {importMsg && <div style={{fontSize:12,fontWeight:700,color:importMsg.startsWith("✓")?"var(--ok)":"var(--rose)",marginBottom:8}}>{importMsg}</div>}
+                  <textarea className="bw-input" style={{minHeight:80,fontSize:12,fontFamily:"monospace"}} placeholder='Paste content of media_metrics.json here…' value={importInput} onChange={(e)=>setImportInput(e.target.value)}/>
+                  <button className="bw-btn sm ok" style={{marginTop:8}} onClick={()=>{
+                    const r = importInsightsJSON(importInput);
+                    setImportMsg(r.error ? "✗ "+r.error : `✓ Imported metrics for ${r.imported} posts — Sync the analysis again.`);
+                    if (!r.error) setImportInput("");
+                  }} disabled={!importInput.trim()}>Import metrics</button>
+                </div>
               </>)}
             </>)}
 
