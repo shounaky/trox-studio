@@ -317,6 +317,8 @@ export default function TroxStudio() {
   const [igAppIdInput, setIgAppIdInput] = useState("");
   const [igAppSecretInput, setIgAppSecretInput] = useState("");
   const [oauthStarting, setOauthStarting] = useState(false);
+  const [igSessionId, setIgSessionId] = useState("");
+  const [igSessionInput, setIgSessionInput] = useState("");
 
   useEffect(() => {
     let p = null;
@@ -337,6 +339,7 @@ export default function TroxStudio() {
     try { const r = localStorage.getItem("trox_ig_last_sync"); if (r) setIgLastSync(+r); } catch (e) {}
     try { const r = localStorage.getItem("trox_ig_app_id"); if (r) setIgAppId(r); } catch (e) {}
     try { const r = localStorage.getItem("trox_ig_app_secret"); if (r) setIgAppSecret(r); } catch (e) {}
+    try { const r = localStorage.getItem("trox_ig_session"); if (r) setIgSessionId(r); } catch (e) {}
     // Handle OAuth callback: token or error arrives as URL param
     try {
       const params = new URLSearchParams(window.location.search);
@@ -468,9 +471,44 @@ Be data-driven and specific to Trox's premium journal brand and audience. Plain 
     } catch (e) { setIgError(e.message); setOauthStarting(false); }
   }
 
+  function saveSession() {
+    const s = igSessionInput.trim();
+    if (!s) return;
+    setIgSessionId(s); persist("trox_ig_session", s);
+    setIgSessionInput("");
+    setIgError("");
+  }
+
+  async function syncWithSession() {
+    const session = igSessionId;
+    if (!session) { setIgError("No session ID saved. Add it in Settings first."); return; }
+    setIgSyncing(true); setIgError("");
+    try {
+      const res = await fetch("/api/instagram-session", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: session, username: "troxcreations" }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      // Map session response to same shape as Graph API response
+      const mapped = (data.posts || []).map((p) => ({
+        ...p,
+        insights: { plays: p.play_count || 0 },
+      }));
+      setIgMedia(mapped);
+      setIgAccount({ ...data.account, followers_count: data.account.followers_count });
+      persist("trox_ig_media", mapped);
+      persist("trox_ig_account", data.account);
+      const now = Date.now();
+      setIgLastSync(now); persist("trox_ig_last_sync", String(now));
+    } catch (e) { setIgError(e.message); }
+    setIgSyncing(false);
+  }
+
   function disconnectInstagram() {
     setIgToken(""); setIgAccountId(""); setIgAccount(null); setIgMedia([]); setIgLastSync(null); setIgAnalysis("");
-    ["trox_ig_token","trox_ig_account_id","trox_ig_account","trox_ig_media","trox_ig_last_sync"].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+    setIgSessionId("");
+    ["trox_ig_token","trox_ig_account_id","trox_ig_account","trox_ig_media","trox_ig_last_sync","trox_ig_session"].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
   }
 
   function saveKey(type) {
@@ -831,38 +869,34 @@ Be specific, concise. Plain text, no markdown.`);
             </>)}
 
             {tab === "Analytics" && (<>
-              {!igToken || !igAccountId ? (
+              {!igSessionId && (!igToken || !igAccountId) ? (
                 <div className="bw-ig-setup">
                   <h3>Live Instagram Analytics</h3>
-                  <p className="sub">See real reach, saves, impressions and engagement for every post — then let AI tell you exactly what to make next.</p>
+                  <p className="sub">See real likes, comments, video/reel plays and engagement for every post — then let AI tell you what to make next.</p>
                   {igError && <div style={{fontSize:12,color:"var(--rose)",marginBottom:12,padding:"8px 12px",background:"#fef2f2",borderRadius:8}}>{igError}</div>}
-                  <p style={{fontSize:13,color:"var(--ink-2)",marginBottom:16}}>Set up your connection in the <button className="bw-edit" onClick={() => setTab("Settings")}>Settings tab →</button> It takes about 5 minutes and then connecting is one click forever.</p>
-                  <div style={{background:"var(--card-2)",border:"1px solid var(--line)",borderRadius:12,padding:"14px 16px"}}>
-                    <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"var(--ink)"}}>What you need:</div>
-                    <div className="bw-ig-step"><span className="num">1</span><span>Instagram converted to <b>Business or Creator</b> account</span></div>
-                    <div className="bw-ig-step"><span className="num">2</span><span>Instagram linked to a <b>Facebook Page</b></span></div>
-                    <div className="bw-ig-step"><span className="num">3</span><span>A <b>Meta Developer App</b> created (free, 2 min at developers.facebook.com)</span></div>
-                  </div>
+                  <p style={{fontSize:13,color:"var(--ink-2)"}}>Go to <button className="bw-edit" onClick={() => setTab("Settings")}>Settings →</button> paste your Instagram Session ID and hit Sync. No developer app needed.</p>
                 </div>
               ) : (<>
-                <div className="bw-ig-connected">
-                  <div className="bw-ig-avatar-ph">{(igAccount?.username||"T")[0].toUpperCase()}</div>
-                  <div className="info">
-                    <div className="handle">✓ @{igAccount?.username||"troxcreations"} connected</div>
-                    <div className="stats">{fmtNum(igAccount?.followers_count)} followers · {igAccount?.media_count||"—"} posts</div>
+                {(igAccount || igSessionId) && (
+                  <div className="bw-ig-connected">
+                    <div className="bw-ig-avatar-ph">{(igAccount?.username||"T")[0].toUpperCase()}</div>
+                    <div className="info">
+                      <div className="handle">✓ @{igAccount?.username||"troxcreations"}</div>
+                      <div className="stats">{fmtNum(igAccount?.followers_count)} followers · {igAccount?.media_count||igMedia.length||"—"} posts · {igSessionId?"session":"API"} connected</div>
+                    </div>
+                    <button className="bw-mini" style={{marginLeft:"auto"}} onClick={disconnectInstagram}>Disconnect</button>
                   </div>
-                  <button className="bw-mini" style={{marginLeft:"auto"}} onClick={disconnectInstagram}>Disconnect</button>
-                </div>
+                )}
 
                 <div className="bw-analytics-header">
-                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igAccount?.followers_count)}</div><div className="albl">Followers</div></div>
-                  <div className="bw-analytics-tile"><div className="aval">{igMedia.length}</div><div className="albl">Posts tracked</div></div>
-                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igAvgReach)||"—"}</div><div className="albl">Avg reach</div></div>
-                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igMedia.filter((p)=>p.insights?.saved).reduce((a,p)=>a+(p.insights.saved||0),0))||"—"}</div><div className="albl">Total saves</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igAccount?.followers_count)||"—"}</div><div className="albl">Followers</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{igMedia.length||"—"}</div><div className="albl">Posts tracked</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igMedia.reduce((a,p)=>a+(p.like_count||0),0))||"—"}</div><div className="albl">Total likes</div></div>
+                  <div className="bw-analytics-tile"><div className="aval">{fmtNum(igMedia.reduce((a,p)=>a+(p.insights?.plays||p.play_count||0),0))||"—"}</div><div className="albl">Total plays</div></div>
                 </div>
 
                 <div className="bw-analytics-syncbar">
-                  <button className="bw-btn sm" onClick={syncInstagram} disabled={igSyncing}>{igSyncing?"Syncing…":"↻ Sync posts"}</button>
+                  <button className="bw-btn sm" onClick={igToken && igAccountId ? syncInstagram : syncWithSession} disabled={igSyncing}>{igSyncing?"Syncing…":"↻ Sync posts"}</button>
                   {igLastSync && <span className="bw-analytics-synctime">Last synced {timeAgo(igLastSync)}</span>}
                   {igMedia.length > 0 && <button className="bw-btn sm ghost" onClick={analyzeInstagram} disabled={busy==="ig_ai"}>{busy==="ig_ai"?"Analysing…":"AI analyse →"}</button>}
                   {igError && <span style={{fontSize:12,color:"var(--rose)"}}>{igError}</span>}
@@ -877,9 +911,14 @@ Be specific, concise. Plain text, no markdown.`);
                   <div className="bw-ig-grid">
                     {igMedia.map((post, i) => {
                       const reach = post.insights?.reach || 0;
+                      const plays = post.insights?.plays || post.play_count || 0;
                       const saves = post.insights?.saved || 0;
-                      const eng = reach > 0 ? (((post.like_count||0)+(post.comments_count||0)+saves)/reach*100).toFixed(1) : null;
-                      const perfClass = reach > igAvgReach*1.3 ? "high" : reach < igAvgReach*0.7 && reach > 0 ? "low" : "mid";
+                      const engBase = reach || plays || 1;
+                      const engScore = (post.like_count||0) + (post.comments_count||0) + saves;
+                      const eng = engScore > 0 ? (engScore / engBase * 100).toFixed(1) : null;
+                      const topMetric = reach || plays;
+                      const avgMetric = igMedia.filter((p)=>p.insights?.reach||p.play_count).reduce((a,p)=>a+(p.insights?.reach||p.play_count||0),0)/(igMedia.filter((p)=>p.insights?.reach||p.play_count).length||1);
+                      const perfClass = topMetric > avgMetric*1.3 ? "high" : topMetric > 0 && topMetric < avgMetric*0.7 ? "low" : "mid";
                       return (
                         <div className={`bw-ig-post${reach > igAvgReach*1.3?" top":""}`} key={post.id} style={{animationDelay:i*35+"ms"}}>
                           <div className="ptop">
@@ -892,7 +931,7 @@ Be specific, concise. Plain text, no markdown.`);
                             <div className="bw-ig-metric"><div className="mv">{fmtNum(post.comments_count||0)}</div><div className="ml">Cmts</div></div>
                             {reach > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(reach)}</div><div className="ml">Reach</div></div>}
                             {saves > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(saves)}</div><div className="ml">Saves</div></div>}
-                            {(post.insights?.plays||post.insights?.video_views) > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(post.insights?.plays||post.insights?.video_views)}</div><div className="ml">Plays</div></div>}
+                            {plays > 0 && <div className="bw-ig-metric"><div className="mv">{fmtNum(plays)}</div><div className="ml">Plays</div></div>}
                           </div>
                           <div className="pfooter">
                             {eng !== null ? <span className={`peng ${perfClass}`}>{perfClass==="high"?"▲ ":perfClass==="low"?"▼ ":"● "}{eng}% eng</span> : <span/>}
@@ -1006,6 +1045,18 @@ Be specific, concise. Plain text, no markdown.`);
                   {keySaved==="claude"&&<div className="bw-savednote">✓ Claude key saved!</div>}
                 </div>
                 <h3 style={{marginTop:8}}>Instagram Live Analytics</h3>
+                <div className="bw-keyblock" style={{marginBottom:12}}>
+                  <h4>Session Cookie <span style={{background:"#dcf5e9",color:"#1d6b3e",fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:999,marginLeft:6}}>EASIEST</span></h4>
+                  <div className="kdesc">Gets all posts with likes, comments and video/reel plays. No developer app needed — just copy one value from your browser.<br/><br/><b>How to get it (1 min):</b><br/>1. Log into instagram.com on your desktop browser<br/>2. Press <b>F12</b> → Application tab → Cookies → click instagram.com<br/>3. Find the row named <b>sessionid</b> → double-click its Value → copy it<br/>4. Paste below</div>
+                  {igSessionId&&<div className="bw-keystatus set">✓ Session saved: {maskKey(igSessionId)}</div>}
+                  {!igSessionId&&<div className="bw-keystatus unset">Not set</div>}
+                  <div className="bw-keyrow" style={{marginTop:10}}>
+                    <input className="bw-input" type="password" placeholder={igSessionId?"Paste new session to replace":"Paste sessionid value here…"} value={igSessionInput} onChange={(e) => setIgSessionInput(e.target.value)}/>
+                    <button className={"bw-btn sm"+(igSessionId?"":" ok")} onClick={saveSession} disabled={!igSessionInput.trim()}>{igSessionId?"Replace":"Save"}</button>
+                  </div>
+                  {igSessionId&&<div className="bw-savednote">✓ Session saved — go to the Analytics tab and hit Sync!</div>}
+                  <div style={{fontSize:11,color:"var(--muted)",marginTop:8}}>Session IDs expire when you log out of Instagram. If Sync fails, just paste a fresh one.</div>
+                </div>
                 <div className="bw-keyblock">
                   <h4>Connect Instagram {igAccount&&<span style={{color:"var(--ok)",fontWeight:700,fontSize:12}}>✓ @{igAccount.username}</span>}</h4>
                   <div className="kdesc">One-time setup — then reconnecting is a single click. Your Instagram must be a <b>Business or Creator account</b> linked to a Facebook Page.</div>
