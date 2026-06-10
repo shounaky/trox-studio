@@ -825,8 +825,6 @@ textarea.bw-input { resize: vertical; min-height: 80px; width: 100%; }
    SETTINGS
 ══════════════════════════════════════════════════════════ */
 .bw-settings { max-width:620px; }
-.bw-settings > h2 { font-family:'Fraunces'; font-weight:600; font-size:28px; margin-bottom:8px; letter-spacing:-.4px; }
-.bw-settings > .sub { color:var(--ink-2); font-size:13.5px; margin-bottom:28px; line-height:1.6; }
 .bw-settings h3 { font-family:'Fraunces'; font-weight:600; font-size:16px; margin-bottom:15px; color:var(--ink); }
 
 .bw-providers { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:32px; }
@@ -1550,4 +1548,88 @@ textarea.bw-input { resize: vertical; min-height: 80px; width: 100%; }
 .bw-cmd-goal-target  { font-size:13px; color:var(--ink-2); }
 .bw-cmd-goal-inputs  { display:flex; gap:14px; flex-wrap:wrap; }
 .bw-cmd-goal-field   { display:flex; flex-direction:column; gap:3px; }
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS — REDESIGNED WITH NAV PILLS
+══════════════════════════════════════════════════════════ */
+.bw-settings-header { margin-bottom:20px; }
+.bw-settings-header h2 { font-family:'Fraunces'; font-weight:600; font-size:28px; letter-spacing:-.4px; margin-bottom:6px; }
+.bw-settings-header .sub { color:var(--ink-2); font-size:13px; line-height:1.6; }
+
+.bw-settings-nav {
+  display:flex; flex-wrap:wrap; gap:7px; margin-bottom:26px;
+  border-bottom:1px solid var(--line); padding-bottom:18px;
+}
+.bw-settings-navbtn {
+  padding:6px 16px; border-radius:999px;
+  font-size:12.5px; font-weight:700; font-family:'Mulish';
+  border:1.5px solid var(--line-2); background:transparent;
+  color:var(--ink-2); cursor:pointer;
+  transition:all .2s;
+}
+.bw-settings-navbtn:hover { border-color:var(--gold-soft); color:var(--ink); }
+.bw-settings-navbtn.on {
+  border-color:var(--gold); color:var(--gold);
+  background:rgba(201,168,108,.07);
+}
+
+.bw-settings-section { animation:rise-sm .25s ease; }
+.bw-section-title {
+  font-family:'Fraunces'; font-weight:600; font-size:20px;
+  color:var(--ink); margin-bottom:6px; letter-spacing:-.3px;
+}
+.bw-section-desc { font-size:12.5px; color:var(--ink-2); margin-bottom:22px; line-height:1.6; }
+
+.bw-badge-easiest {
+  display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.4px;
+  padding:2px 8px; border-radius:999px;
+  background:rgba(109,196,139,.12); color:var(--ok);
+  border:1px solid rgba(109,196,139,.2); margin-left:8px;
+}
+.bw-badge-soon {
+  display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.4px;
+  padding:2px 8px; border-radius:999px;
+  background:rgba(201,168,108,.1); color:var(--gold);
+  border:1px solid rgba(201,168,108,.2); margin-left:8px;
+}
+.bw-badge-active {
+  display:inline-block; font-size:9.5px; font-weight:800; letter-spacing:.4px;
+  padding:2px 8px; border-radius:999px;
+  background:rgba(109,196,139,.12); color:var(--ok);
+  border:1px solid rgba(109,196,139,.2); margin-left:8px;
+}
+
+.bw-setup-steps {
+  background:var(--card-2); border:1px solid var(--line);
+  border-radius:12px; padding:14px 16px; margin-bottom:14px;
+}
+.bw-setup-label {
+  font-size:11px; font-weight:800; color:var(--blue);
+  margin-bottom:10px; letter-spacing:.4px; text-transform:uppercase;
+}
+
+.bw-field-label {
+  display:block; font-size:11px; font-weight:800;
+  color:var(--blue); margin-bottom:5px;
+  letter-spacing:.5px; text-transform:uppercase;
+}
+
+.bw-error-block {
+  font-size:12px; color:var(--rose); padding:8px 10px;
+  background:#fef2f2; border-radius:8px; margin-bottom:12px;
+}
+
+.bw-code-inline {
+  font-family:ui-monospace,monospace; font-size:11px;
+  background:var(--card); padding:3px 7px;
+  border-radius:5px; display:inline-block;
+  margin-top:4px; word-break:break-all;
+}
+
+.bw-coming-soon-note {
+  font-size:12px; color:var(--muted); margin-top:12px;
+  padding:10px 12px; background:var(--card-2);
+  border-radius:8px; border:1px solid var(--line);
+  line-height:1.55;
+}
 .bw-cmd-goal-field .bw-min { width:90px; }

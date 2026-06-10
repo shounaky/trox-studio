@@ -7,7 +7,7 @@ import { uid, parseJSON, buildInstructions, buildImageBriefInstructions, dateStr
 import { persist, recall, recallStr, forget, forgetMany, KEYS } from "../lib/storage";
 import { BRAND_KB, TROX_DEFAULT, learnCtx } from "../lib/prompts";
 
-import DashboardTab from "./tabs/DashboardTab";
+// DashboardTab retired — content moved to CommandCenterTab
 import CreateTab from "./tabs/CreateTab";
 import PostsTab from "./tabs/PostsTab";
 import CalendarTab from "./tabs/CalendarTab";
@@ -21,7 +21,7 @@ import CommandCenterTab from "./tabs/CommandCenterTab";
 import BrandBrainTab from "./tabs/BrandBrainTab";
 import InboxTab from "./tabs/InboxTab";
 import DemoModeBanner from "./DemoModeBanner";
-import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments } from "../lib/brand-brain";
+import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, shortBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments } from "../lib/brand-brain";
 import { MockProvider } from "../lib/providers/mock-publishing";
 
 const MARQUEE = ["TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·","TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·"];
@@ -201,6 +201,13 @@ export default function TroxStudio() {
     setLoaded(true);
   }, []);
 
+  // Auto-load inbox when switching to Inbox tab
+  useEffect(() => {
+    if (tab === "Inbox" && inboxMessages.length === 0 && !inboxLoading) {
+      loadInbox();
+    }
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---------------------------------------------------------------------------
   // Core helpers
   // ---------------------------------------------------------------------------
@@ -343,6 +350,17 @@ export default function TroxStudio() {
       setWeekSummary(d.weekSummary || "");
     } catch (e) { setErr(e.message); }
     setPrioritiesLoading(false);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mock engagement refresh
+  // ---------------------------------------------------------------------------
+  async function refreshPostEngagement(post) {
+    if (!post.publishedId) return;
+    try {
+      const eng = await MockProvider.getEngagement(post.publishedId);
+      if (eng) savePosts(posts.map((p) => p.id === post.id ? { ...p, mockEngagement: eng } : p));
+    } catch {}
   }
 
   // ---------------------------------------------------------------------------
@@ -576,8 +594,9 @@ export default function TroxStudio() {
     if (noKeyGuard()) return;
     setBusy("ideas"); setErr(""); setIdeas([]);
     const subject = composeSubject();
+    const bb = shortBrainCtx(brandBrain);
     try {
-      const out = await callAI(`${learnCtx(profile, playbook)}\n\nPlatform: ${channelLabel(channel)}. Generate 5 content ideas${subject ? " focused on: " + subject : ""} to win NEW followers.\nReturn ONLY a JSON array. Each object: {"title","format","hook","why","performance"}.\nformat from: ${["Reel","Carousel","Post","Story"].join(" / ")}\nhook: scroll-stopping opener, max 14 words\nperformance: "High" or "Medium"`);
+      const out = await callAI(`${learnCtx(profile, playbook)}${bb ? "\n\n" + bb : ""}\n\nPlatform: ${channelLabel(channel)}. Generate 5 content ideas${subject ? " focused on: " + subject : ""} to win NEW followers. Write for the personas above.\nReturn ONLY a JSON array. Each object: {"title","format","hook","why","performance"}.\nformat from: ${["Reel","Carousel","Post","Story"].join(" / ")}\nhook: scroll-stopping opener, max 14 words\nperformance: "High" or "Medium"`);
       setIdeas(parseJSON(out));
     } catch (e) { setErr(e.message || "Couldn't generate ideas — try again."); }
     setBusy("");
@@ -588,8 +607,9 @@ export default function TroxStudio() {
     const subject = composeSubject();
     if (!subject) { setErr("Pick a collection/theme or type a topic first."); return; }
     setBusy("build"); setErr(""); setDraftContent(null); setImageBrief("");
+    const bb = shortBrainCtx(brandBrain);
     try {
-      const out = await callAI(`${learnCtx(profile, playbook)}\n\nCreate a ${format} for ${channelLabel(channel)} about: ${subject}.\n${buildInstructions(format)}\nWrite 100% in Trox's premium, reflective, philosophical voice. Plain text only, no markdown.`);
+      const out = await callAI(`${learnCtx(profile, playbook)}${bb ? "\n\n" + bb : ""}\n\nCreate a ${format} for ${channelLabel(channel)} about: ${subject}.\n${buildInstructions(format)}\nWrite 100% in Trox's premium, reflective, philosophical voice. Speak to the personas above. Plain text only, no markdown.`);
       setDraftContent({ channel, type: format, title: subject, content: out });
       dispatchWebhook("POST_GENERATED", { title: subject, format, channel });
     } catch (e) { setErr(e.message || "Couldn't build that — try again."); }
@@ -821,8 +841,11 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
     setBusy("calendar_plan"); setErr("");
     const scheduledCount = Object.keys(schedule).length;
     const monthName = new Date(calendarYear, calendarMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const bb = shortBrainCtx(brandBrain);
+    const pillarTargets = (brandBrain?.pillars || []).map((p) => `${p.label} ${p.target}%`).join(", ");
+    const upcomingStr = getBrainMoments(brandBrain?.seasonalMoments || [], 60).slice(0, 3).map((m) => `${m.label} (${m.daysAway}d away)`).join(", ");
     try {
-      const out = await callAI(`${learnCtx(profile, playbook)}\n\nCreate a content calendar for ${monthName} for @troxcreations.\n\nCurrently scheduled: ${scheduledCount} posts in this month.\nUnscheduled posts ready to use: ${posts.filter((p) => p.status === "planned" && !schedule[p.id]).length}\n\nGenerate a complete month content plan:\n- Exact dates and days (Mon-Fri only, 4-5 posts/week)\n- Post format (Reel/Carousel/Post) for each slot\n- Content topic matching Trox's product lines (Zodiac, Legacy, VMKG, Life Pillar)\n- Best time of day for each post type\n- 1-2 sentence hook for each post\n\nFormat: DATE — DAY — FORMAT — TOPIC — HOOK — TIME\nPlain text, no markdown.`);
+      const out = await callAI(`${learnCtx(profile, playbook)}${bb ? "\n\n" + bb : ""}\n\nCreate a content calendar for ${monthName} for @troxcreations.\n\nCurrently scheduled: ${scheduledCount} posts in this month.\nUnscheduled posts ready to use: ${posts.filter((p) => p.status === "planned" && !schedule[p.id]).length}\n${pillarTargets ? "Pillar targets: " + pillarTargets : ""}\n${upcomingStr ? "Upcoming moments: " + upcomingStr : ""}\n\nGenerate a complete month content plan:\n- Exact dates and days (Mon-Fri only, 4-5 posts/week)\n- Post format (Reel/Carousel/Post) for each slot\n- Content pillar for each post\n- Best time of day for each post type (IST)\n- 1-2 sentence hook for each post\n\nFormat: DATE — DAY — FORMAT — PILLAR — TOPIC — HOOK — TIME\nPlain text, no markdown.`);
       setCalendarPlan(out);
     } catch (e) { setErr(e.message); }
     setBusy("");
@@ -994,7 +1017,8 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
               {tab === "Posts" && (
                 <PostsTab posts={posts} savePosts={savePosts} logOpen={logOpen} setLogOpen={setLogOpen}
                   logForm={logForm} setLogForm={setLogForm} busy={busy} submitLog={submitLog} copy={copy}
-                  brandBrain={brandBrain} updatePostPillar={updatePostPillar} />
+                  brandBrain={brandBrain} updatePostPillar={updatePostPillar}
+                  refreshPostEngagement={refreshPostEngagement} />
               )}
 
               {tab === "Calendar" && (
@@ -1012,6 +1036,12 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   inboxMessages={inboxMessages} inboxLoading={inboxLoading} inboxError={inboxError}
                   drafting={drafting} draftReply={draftReply}
                   updateInboxMessage={updateInboxMessage} refreshInbox={loadInbox} />
+              )}
+
+              {tab === "Trends" && (
+                <TrendsTab trends={trends} trendLastRun={trendLastRun} busy={busy} err={err}
+                  activeKey={activeKey} setTab={setTab} runTrendDiscovery={runTrendDiscovery}
+                  copy={copy} setTopicFromTrend={(t) => { setTopic(t); setTab("Create"); }} />
               )}
 
               {tab === "Analytics" && (

@@ -14,6 +14,7 @@ export default function PostsTab({
   copy,
   brandBrain,
   updatePostPillar,
+  refreshPostEngagement,
 }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterChannel, setFilterChannel] = useState("all");
@@ -210,6 +211,9 @@ export default function PostsTab({
               {p.status === "published" && (
                 <div className="bw-cardbtns">
                   <button className="bw-mini go" onClick={() => openLog(p)}>Log results</button>
+                  {refreshPostEngagement && p.publishedId && (
+                    <button className="bw-mini" onClick={() => refreshPostEngagement(p)}>↻ Engagement</button>
+                  )}
                   <button className="bw-mini" onClick={() => copy(p.content)}>Copy</button>
                   <button className="bw-mini" onClick={() => savePosts(posts.filter((x) => x.id !== p.id))}>Delete</button>
                 </div>
