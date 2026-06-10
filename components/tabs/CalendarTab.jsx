@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { channelLabel } from "../../lib/constants";
 import { dateStr } from "../../lib/utils";
+import { computePillarMix } from "../../lib/brand-brain";
 
 function buildMonthGrid(year, month) {
   const first = new Date(year, month, 1);
@@ -42,18 +43,33 @@ export default function CalendarTab({
   busy,
   setTab,
   copy,
+  brandBrain,
+  publishPost,
+  publishLoading,
 }) {
-  const [pickerOpen, setPickerOpen] = useState(null); // postId being scheduled
+  const [pickerOpen, setPickerOpen] = useState(null);
   const [pickerDate, setPickerDate] = useState("");
 
-  const today = dateStr(new Date());
-  const days = buildMonthGrid(calendarYear, calendarMonth);
+  const today    = dateStr(new Date());
+  const days     = buildMonthGrid(calendarYear, calendarMonth);
+  const pillars  = brandBrain?.pillars || [];
+
+  const pillarById = {};
+  pillars.forEach((p) => { pillarById[p.id] = p; });
 
   const scheduleByDate = {};
   Object.entries(schedule || {}).forEach(([postId, ds]) => {
     if (!scheduleByDate[ds]) scheduleByDate[ds] = [];
     scheduleByDate[ds].push(postId);
   });
+
+  // Posts scheduled this month for mix health
+  const thisMonthPrefix = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}`;
+  const thisMonthPosts  = Object.entries(schedule || {})
+    .filter(([, ds]) => ds.startsWith(thisMonthPrefix))
+    .map(([id]) => posts.find((p) => p.id === id))
+    .filter(Boolean);
+  const mixData = computePillarMix(thisMonthPosts, pillars);
 
   function prevMonth() {
     if (calendarMonth === 0) { setCalendarYear(calendarYear - 1); setCalendarMonth(11); }
@@ -82,48 +98,63 @@ export default function CalendarTab({
 
   return (
     <>
+      {/* Calendar Header */}
       <div className="bw-cal-header">
         <div className="bw-cal-nav">
           <button className="bw-btn sm ghost" onClick={prevMonth}>←</button>
-          <span className="bw-cal-title">
-            {MONTH_NAMES[calendarMonth]} {calendarYear}
-          </span>
+          <span className="bw-cal-title">{MONTH_NAMES[calendarMonth]} {calendarYear}</span>
           <button className="bw-btn sm ghost" onClick={goToday}>Today</button>
           <button className="bw-btn sm ghost" onClick={nextMonth}>→</button>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className="bw-btn sm"
-            onClick={genCalendarPlan}
-            disabled={busy === "calendar_plan"}
-          >
+          <button className="bw-btn sm" onClick={genCalendarPlan} disabled={busy === "calendar_plan"}>
             {busy === "calendar_plan" ? "Planning…" : "AI fill gaps →"}
           </button>
-          <button
-            className="bw-btn sm ghost"
-            onClick={() => setTab("Create")}
-          >
-            + New post
-          </button>
+          <button className="bw-btn sm ghost" onClick={() => setTab("Create")}>+ New post</button>
         </div>
       </div>
 
+      {/* Mix Health Gauge */}
+      {pillars.length > 0 && (
+        <div className="bw-cal-mix">
+          <div className="bw-cal-mix-label">
+            {MONTH_NAMES[calendarMonth]} mix — {thisMonthPosts.length} post{thisMonthPosts.length !== 1 ? "s" : ""}
+          </div>
+          <div className="bw-cal-mix-bars">
+            {mixData.map((p) => (
+              <div className="bw-cal-mix-row" key={p.id}>
+                <div className="bw-cal-mix-name">{p.label.split(" ")[0]}</div>
+                <div className="bw-cal-mix-bar-bg">
+                  <div
+                    className="bw-cal-mix-bar-fill"
+                    style={{ width: `${Math.min(100, p.actual)}%`, background: p.color }}
+                  />
+                  <div className="bw-cal-mix-bar-target" style={{ left: `${p.target}%` }} />
+                </div>
+                <span style={{ color: p.delta > 5 ? "#6DC48B" : p.delta < -5 ? "#D4806E" : "var(--ink-2)", fontSize: 11 }}>
+                  {p.actual}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Grid */}
       <div style={{ overflowX: "auto" }}>
         <table className="bw-cal-grid">
           <thead>
-            <tr>
-              {DOW.map((d) => <th key={d}>{d}</th>)}
-            </tr>
+            <tr>{DOW.map((d) => <th key={d}>{d}</th>)}</tr>
           </thead>
           <tbody>
             {Array.from({ length: Math.ceil(days.length / 7) }).map((_, wi) => (
               <tr key={wi}>
                 {days.slice(wi * 7, wi * 7 + 7).map((cell, di) => {
-                  const ds = dateStr(cell.date);
+                  const ds       = dateStr(cell.date);
+                  const isToday  = ds === today;
                   const dayPosts = (scheduleByDate[ds] || [])
                     .map((id) => posts.find((p) => p.id === id))
                     .filter(Boolean);
-                  const isToday = ds === today;
                   return (
                     <td
                       key={di}
@@ -134,17 +165,23 @@ export default function CalendarTab({
                       }
                     >
                       <div className="dn">{cell.date.getDate()}</div>
-                      {dayPosts.map((p) => (
-                        <span
-                          key={p.id}
-                          className={"bw-cal-pill " + p.status}
-                          title={p.title}
-                          onClick={() => unschedulePost(p.id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {p.type} · {p.title.slice(0, 18)}
-                        </span>
-                      ))}
+                      {dayPosts.map((p) => {
+                        const pillarColor = pillarById[p.pillar]?.color;
+                        return (
+                          <span
+                            key={p.id}
+                            className={"bw-cal-pill " + p.status}
+                            title={p.title}
+                            onClick={() => unschedulePost(p.id)}
+                            style={{
+                              cursor: "pointer",
+                              ...(pillarColor ? { borderLeft: `3px solid ${pillarColor}` } : {}),
+                            }}
+                          >
+                            {p.type} · {p.title.slice(0, 16)}
+                          </span>
+                        );
+                      })}
                     </td>
                   );
                 })}
@@ -155,30 +192,13 @@ export default function CalendarTab({
       </div>
 
       {busy === "calendar_plan" && (
-        <div className="bw-load">
-          <div className="bw-spin" />
-          Building your content plan for {MONTH_NAMES[calendarMonth]}…
-        </div>
+        <div className="bw-load"><div className="bw-spin" />Building your content plan for {MONTH_NAMES[calendarMonth]}…</div>
       )}
 
       {calendarPlan && (
         <div style={{ marginBottom: 20 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'Fraunces'",
-                fontWeight: 600,
-                fontSize: 16,
-                color: "var(--ink)",
-              }}
-            >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontFamily: "'Fraunces'", fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>
               AI Content Plan
             </span>
             <button className="bw-copy" style={{ position: "static", float: "none" }} onClick={() => copy(calendarPlan)}>
@@ -189,11 +209,12 @@ export default function CalendarTab({
         </div>
       )}
 
+      {/* Unscheduled Queue */}
       <div className="bw-cal-unscheduled">
         <h3>
           Unscheduled ({unscheduledPosts.length})
           <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 400, marginLeft: 8, fontFamily: "'Mulish'" }}>
-            Click a post to schedule it
+            Click a post to schedule · click a calendar pill to unschedule
           </span>
         </h3>
         {unscheduledPosts.length === 0 ? (
@@ -203,49 +224,59 @@ export default function CalendarTab({
           </div>
         ) : (
           <div className="bw-grid">
-            {unscheduledPosts.map((p) => (
-              <div className="bw-card" key={p.id}>
-                <div className="bw-meta">
-                  <span className="bw-fmt">{p.type}</span>
-                  <span className="bw-fmt" style={{ color: "var(--ink-2)", background: "var(--card-2)", borderColor: "var(--line)" }}>
-                    {channelLabel(p.channel)}
-                  </span>
+            {unscheduledPosts.map((p) => {
+              const pillarColor = pillarById[p.pillar]?.color;
+              return (
+                <div className="bw-card" key={p.id} style={pillarColor ? { borderTop: `2px solid ${pillarColor}` } : {}}>
+                  <div className="bw-meta">
+                    <span className="bw-fmt">{p.type}</span>
+                    <span className="bw-fmt" style={{ color: "var(--ink-2)", background: "var(--card-2)", borderColor: "var(--line)" }}>
+                      {channelLabel(p.channel)}
+                    </span>
+                    {p.pillar && pillarColor && (
+                      <span className="bw-fmt" style={{ color: pillarColor, borderColor: pillarColor + "44" }}>
+                        {pillarById[p.pillar]?.label.split(" ")[0]}
+                      </span>
+                    )}
+                  </div>
+                  <h4>{p.title}</h4>
+                  <div className="bw-postbody">{p.content}</div>
+                  <div className="bw-cardbtns">
+                    {pickerOpen === p.id ? (
+                      <>
+                        <input
+                          type="date"
+                          className="bw-min"
+                          value={pickerDate}
+                          min={today}
+                          onChange={(e) => setPickerDate(e.target.value)}
+                          style={{ width: "auto" }}
+                        />
+                        <button className="bw-mini go" onClick={() => confirmSchedule(p.id)} disabled={!pickerDate}>
+                          Schedule
+                        </button>
+                        <button className="bw-mini" onClick={() => setPickerOpen(null)}>Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="bw-mini go" onClick={() => { setPickerOpen(p.id); setPickerDate(""); }}>
+                          Schedule →
+                        </button>
+                        {publishPost && (
+                          <button
+                            className="bw-mini"
+                            onClick={() => publishPost(p)}
+                            disabled={publishLoading === p.id}
+                          >
+                            {publishLoading === p.id ? "Publishing…" : "Publish"}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-                <h4>{p.title}</h4>
-                <div className="bw-postbody">{p.content}</div>
-                <div className="bw-cardbtns">
-                  {pickerOpen === p.id ? (
-                    <>
-                      <input
-                        type="date"
-                        className="bw-min"
-                        value={pickerDate}
-                        min={today}
-                        onChange={(e) => setPickerDate(e.target.value)}
-                        style={{ width: "auto" }}
-                      />
-                      <button
-                        className="bw-mini go"
-                        onClick={() => confirmSchedule(p.id)}
-                        disabled={!pickerDate}
-                      >
-                        Schedule
-                      </button>
-                      <button className="bw-mini" onClick={() => setPickerOpen(null)}>
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="bw-mini go"
-                      onClick={() => { setPickerOpen(p.id); setPickerDate(""); }}
-                    >
-                      Schedule →
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

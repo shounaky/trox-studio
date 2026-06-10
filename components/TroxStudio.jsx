@@ -17,6 +17,12 @@ import CompetitionTab from "./tabs/CompetitionTab";
 import CoachTab from "./tabs/CoachTab";
 import SettingsTab from "./tabs/SettingsTab";
 import CursorEffect from "./CursorEffect";
+import CommandCenterTab from "./tabs/CommandCenterTab";
+import BrandBrainTab from "./tabs/BrandBrainTab";
+import InboxTab from "./tabs/InboxTab";
+import DemoModeBanner from "./DemoModeBanner";
+import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments } from "../lib/brand-brain";
+import { MockProvider } from "../lib/providers/mock-publishing";
 
 const MARQUEE = ["TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·","TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·"];
 
@@ -103,8 +109,33 @@ export default function TroxStudio() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
 
+  // Brand Brain
+  const [brandBrain, setBrandBrain] = useState(null);
+
+  // Inbox
+  const [inboxMessages, setInboxMessages] = useState([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [inboxError, setInboxError] = useState("");
+  const [drafting, setDrafting] = useState("");
+
+  // Create enhancements
+  const [hooks, setHooks] = useState([]);
+  const [hooksLoading, setHooksLoading] = useState(false);
+  const [voiceResult, setVoiceResult] = useState(null);
+  const [voiceChecking, setVoiceChecking] = useState(false);
+  const [repurposeText, setRepurposeText] = useState("");
+  const [repurposePlatforms, setRepurposePlatforms] = useState(["Instagram"]);
+  const [repurposed, setRepurposed] = useState(null);
+  const [repurposing, setRepurposing] = useState(false);
+
+  // Command Center
+  const [priorities, setPriorities] = useState([]);
+  const [prioritiesLoading, setPrioritiesLoading] = useState(false);
+  const [weekSummary, setWeekSummary] = useState("");
+  const [publishLoading, setPublishLoading] = useState("");
+
   // UI
-  const [tab, setTab] = useState("Dashboard");
+  const [tab, setTab] = useState("Home");
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
 
@@ -140,6 +171,7 @@ export default function TroxStudio() {
     if (trd) setTrendLastRun(+trd);
     setWebhookUrl(recallStr(KEYS.webhookUrl));
     setApiKey(recallStr(KEYS.apiKey));
+    setBrandBrain(loadBrandBrain());
 
     // OAuth callback
     try {
@@ -202,6 +234,112 @@ export default function TroxStudio() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ event, payload, webhookUrl }),
     }).catch(() => {});
+  }
+
+  // ---------------------------------------------------------------------------
+  // Brand Brain
+  // ---------------------------------------------------------------------------
+  function saveBrandBrain(newBrain) {
+    setBrandBrain(newBrain);
+    saveBrandBrainToStorage(newBrain);
+  }
+
+  function addInsight(text) {
+    const updated = addInsightToMemory(brandBrain, text, "manual");
+    saveBrandBrain(updated);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Inbox
+  // ---------------------------------------------------------------------------
+  async function loadInbox() {
+    setInboxLoading(true); setInboxError("");
+    try {
+      const res = await fetch("/api/inbox");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setInboxMessages(data.messages || []);
+    } catch (e) { setInboxError(e.message); }
+    setInboxLoading(false);
+  }
+
+  function updateInboxMessage(id, updates) {
+    setInboxMessages((prev) => prev.map((m) => m.id === id ? { ...m, ...updates } : m));
+  }
+
+  async function draftReply(message) {
+    if (noKeyGuard()) return;
+    setDrafting(message.id);
+    try {
+      const res = await fetch("/api/inbox", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "draft-reply", message, brandCtx: brandBrainCtx(brandBrain), provider: aiProvider, apiKey: activeKey || undefined }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      updateInboxMessage(message.id, { draft: data.reply });
+    } catch (e) { setErr(e.message); }
+    setDrafting("");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Generate helper — calls /api/generate (hooks, repurpose, voice-check, command-center)
+  // ---------------------------------------------------------------------------
+  async function callGenerate(action, payload = {}) {
+    const res = await fetch("/api/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, provider: aiProvider, apiKey: activeKey || undefined, brandCtx: brandBrainCtx(brandBrain), voiceExamples: brandBrain?.voiceExamples, ...payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || "API error " + res.status);
+    return data;
+  }
+
+  async function genHooks(content) {
+    if (noKeyGuard()) return;
+    setHooksLoading(true);
+    try { const d = await callGenerate("hooks", { content }); setHooks(d.hooks || []); }
+    catch (e) { setErr(e.message); }
+    setHooksLoading(false);
+  }
+
+  async function checkVoice(content) {
+    if (noKeyGuard()) return;
+    setVoiceChecking(true);
+    try { const d = await callGenerate("voice-check", { content }); setVoiceResult(d); }
+    catch (e) { setErr(e.message); }
+    setVoiceChecking(false);
+  }
+
+  async function doRepurpose() {
+    if (noKeyGuard() || !repurposeText.trim() || !repurposePlatforms.length) return;
+    setRepurposing(true); setRepurposed(null);
+    try { const d = await callGenerate("repurpose", { sourceText: repurposeText, platforms: repurposePlatforms }); setRepurposed(d); }
+    catch (e) { setErr(e.message); }
+    setRepurposing(false);
+  }
+
+  async function publishPost(post) {
+    setPublishLoading(post.id);
+    try {
+      const result = await MockProvider.publish(post);
+      savePosts(posts.map((p) => p.id === post.id ? { ...p, status: "published", publishedId: result.id } : p));
+    } catch (e) { setErr(e.message); }
+    setPublishLoading("");
+  }
+
+  async function refreshPriorities() {
+    if (noKeyGuard()) return;
+    setPrioritiesLoading(true);
+    try {
+      const calendarPosts = Object.keys(schedule).map((id) => posts.find((p) => p.id === id)).filter(Boolean);
+      const mix  = computePillarMix(posts, brandBrain?.pillars || []);
+      const next = getBrainMoments(brandBrain?.seasonalMoments || [], 60);
+      const d = await callGenerate("command-center", { calendarPosts, pillarMix: mix, upcomingMoments: next, igAccount });
+      setPriorities(d.priorities || []);
+      setWeekSummary(d.weekSummary || "");
+    } catch (e) { setErr(e.message); }
+    setPrioritiesLoading(false);
   }
 
   // ---------------------------------------------------------------------------
@@ -794,6 +932,7 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
           </div>
         ) : (
           <>
+            <DemoModeBanner settings={{ groqKey, claudeKey, igSessionId, ayrshareKey: "" }} />
             <div className="bw-marquee">
               <div className="bw-marquee-track">
                 {MARQUEE.map((item, i) => (
@@ -810,12 +949,17 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
             </div>
 
             <div key={tab} className="bw-tab-content">
-              {tab === "Dashboard" && (
-                <DashboardTab posts={posts} withData={withData} followers={followers} saveFollowers={saveFollowers}
-                  playbook={playbook} totalFollows={totalFollows} bestSaves={bestSaves}
-                  pct={pct} gained={gained} n={n} s={s} goal={goal}
-                  weeklyReport={weeklyReport} weeklyReportDate={weeklyReportDate}
-                  genWeeklyReport={genWeeklyReport} busy={busy} copy={copy} />
+              {tab === "Home" && (
+                <CommandCenterTab
+                  brandBrain={brandBrain} igAccount={igAccount}
+                  posts={posts} calendarPosts={Object.keys(schedule).map((id) => posts.find((p) => p.id === id)).filter(Boolean)}
+                  priorities={priorities} prioritiesLoading={prioritiesLoading}
+                  weekSummary={weekSummary} refreshPriorities={refreshPriorities}
+                  setActiveTab={setTab} />
+              )}
+
+              {tab === "Brand Brain" && (
+                <BrandBrainTab brandBrain={brandBrain} saveBrandBrain={saveBrandBrain} addInsight={addInsight} />
               )}
 
               {tab === "Create" && (
@@ -827,7 +971,12 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   imageBrief={imageBrief} setImageBrief={setImageBrief}
                   busy={busy} err={err} activeKey={activeKey} setTab={setTab}
                   genIdeas={genIdeas} buildContent={buildContent} saveDraft={saveDraft}
-                  genImageBrief={genImageBrief} copy={copy} />
+                  genImageBrief={genImageBrief} copy={copy}
+                  hooks={hooks} hooksLoading={hooksLoading} genHooks={genHooks}
+                  voiceResult={voiceResult} voiceChecking={voiceChecking} checkVoice={checkVoice}
+                  repurposeText={repurposeText} setRepurposeText={setRepurposeText}
+                  repurposePlatforms={repurposePlatforms} setRepurposePlatforms={setRepurposePlatforms}
+                  repurposed={repurposed} repurposing={repurposing} doRepurpose={doRepurpose} />
               )}
 
               {tab === "Posts" && (
@@ -841,13 +990,15 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   setCalendarYear={setCalendarYear} setCalendarMonth={setCalendarMonth}
                   schedulePost={schedulePost} unschedulePost={unschedulePost}
                   calendarPlan={calendarPlan} genCalendarPlan={genCalendarPlan}
-                  busy={busy} setTab={setTab} copy={copy} />
+                  busy={busy} setTab={setTab} copy={copy}
+                  brandBrain={brandBrain} publishPost={publishPost} publishLoading={publishLoading} />
               )}
 
-              {tab === "Trends" && (
-                <TrendsTab trends={trends} trendLastRun={trendLastRun} busy={busy} err={err}
-                  activeKey={activeKey} setTab={setTab} runTrendDiscovery={runTrendDiscovery}
-                  copy={copy} setTopicFromTrend={(t) => { setTopic(t); }} />
+              {tab === "Inbox" && (
+                <InboxTab
+                  inboxMessages={inboxMessages} inboxLoading={inboxLoading} inboxError={inboxError}
+                  drafting={drafting} draftReply={draftReply}
+                  updateInboxMessage={updateInboxMessage} refreshInbox={loadInbox} />
               )}
 
               {tab === "Analytics" && (
