@@ -134,6 +134,9 @@ export default function TroxStudio() {
   const [weekSummary, setWeekSummary] = useState("");
   const [publishLoading, setPublishLoading] = useState("");
 
+  // Create — pillar tagging
+  const [draftPillar, setDraftPillar] = useState("");
+
   // UI
   const [tab, setTab] = useState("Home");
   const [busy, setBusy] = useState("");
@@ -605,8 +608,12 @@ export default function TroxStudio() {
 
   function saveDraft() {
     if (!draftContent) return;
-    savePosts([{ id: uid(), ...draftContent, createdAt: Date.now(), status: "planned", metrics: null, insight: "" }, ...posts]);
-    setDraftContent(null); setImageBrief(""); setTab("Posts");
+    savePosts([{ id: uid(), ...draftContent, pillar: draftPillar || "", createdAt: Date.now(), status: "planned", metrics: null, insight: "" }, ...posts]);
+    setDraftContent(null); setImageBrief(""); setDraftPillar(""); setTab("Posts");
+  }
+
+  function updatePostPillar(postId, pillarId) {
+    savePosts(posts.map((p) => p.id === postId ? { ...p, pillar: pillarId } : p));
   }
 
   async function submitLog(p) {
@@ -783,10 +790,11 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
   async function runCoach() {
     if (noKeyGuard()) return;
     setBusy("coach"); setErr(""); setCoach("");
-    const done = posts.filter((p) => p.metrics).slice(0, 8);
+    const done    = posts.filter((p) => p.metrics).slice(0, 8);
     const summary = done.length ? done.map((p) => `- ${p.type} "${p.title}": reach ${p.metrics.reach || "?"}, saves ${p.metrics.saves || "?"}`).join("\n") : "No measured posts yet.";
+    const bbCtx   = brandBrain ? `\n\n${brandBrainCtx(brandBrain)}` : "";
     try {
-      const out = await callAI(`${learnCtx(profile, playbook)}\n\nPerformance: ${summary}\nFollowers: started ${+(followers.start || 0)}, now ${+(followers.now || followers.start || 0)}, target ${+(followers.start || 0) + 3000}.\n\nWORKING — 2 things driving growth. FIX — 2 things to change now. NEXT MOVES — 3 specific posts to make next. Be specific. Plain text, no markdown.`);
+      const out = await callAI(`${learnCtx(profile, playbook)}${bbCtx}\n\nPerformance: ${summary}\nFollowers: started ${+(followers.start || 0)}, now ${+(followers.now || followers.start || 0)}, target ${+(followers.start || 0) + 3000}.\n\nWORKING — 2 things driving growth. FIX — 2 things to change now. NEXT MOVES — 3 specific posts to make next (give exact format, hook, and angle). Be specific and reference actual post data. Plain text, no markdown.`);
       setCoach(out);
     } catch (e) { setErr(e.message || "Couldn't run the audit — try again."); }
     setBusy("");
@@ -955,7 +963,10 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   posts={posts} calendarPosts={Object.keys(schedule).map((id) => posts.find((p) => p.id === id)).filter(Boolean)}
                   priorities={priorities} prioritiesLoading={prioritiesLoading}
                   weekSummary={weekSummary} refreshPriorities={refreshPriorities}
-                  setActiveTab={setTab} />
+                  setActiveTab={setTab}
+                  followers={followers} saveFollowers={saveFollowers}
+                  weeklyReport={weeklyReport} weeklyReportDate={weeklyReportDate}
+                  genWeeklyReport={genWeeklyReport} weeklyBusy={busy} copy={copy} />
               )}
 
               {tab === "Brand Brain" && (
@@ -976,12 +987,14 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   voiceResult={voiceResult} voiceChecking={voiceChecking} checkVoice={checkVoice}
                   repurposeText={repurposeText} setRepurposeText={setRepurposeText}
                   repurposePlatforms={repurposePlatforms} setRepurposePlatforms={setRepurposePlatforms}
-                  repurposed={repurposed} repurposing={repurposing} doRepurpose={doRepurpose} />
+                  repurposed={repurposed} repurposing={repurposing} doRepurpose={doRepurpose}
+                  draftPillar={draftPillar} setDraftPillar={setDraftPillar} brandBrain={brandBrain} />
               )}
 
               {tab === "Posts" && (
                 <PostsTab posts={posts} savePosts={savePosts} logOpen={logOpen} setLogOpen={setLogOpen}
-                  logForm={logForm} setLogForm={setLogForm} busy={busy} submitLog={submitLog} copy={copy} />
+                  logForm={logForm} setLogForm={setLogForm} busy={busy} submitLog={submitLog} copy={copy}
+                  brandBrain={brandBrain} updatePostPillar={updatePostPillar} />
               )}
 
               {tab === "Calendar" && (
@@ -1020,7 +1033,7 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
 
               {tab === "Coach" && (
                 <CoachTab coach={coach} busy={busy} err={err} activeKey={activeKey}
-                  setTab={setTab} runCoach={runCoach} copy={copy} />
+                  setTab={setTab} runCoach={runCoach} copy={copy} brandBrain={brandBrain} />
               )}
 
               {tab === "Settings" && (

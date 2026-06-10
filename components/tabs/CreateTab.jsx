@@ -37,8 +37,12 @@ export default function CreateTab({
   repurposeText, setRepurposeText,
   repurposePlatforms, setRepurposePlatforms,
   repurposed, repurposing, doRepurpose,
+  // Pillar
+  draftPillar, setDraftPillar,
+  brandBrain,
 }) {
   const [showRepurpose, setShowRepurpose] = useState(false);
+  const pillars = brandBrain?.pillars || [];
 
   const useIdea = (it) => {
     setTopic(it.title);
@@ -167,6 +171,22 @@ export default function CreateTab({
             {draftContent.content}
           </div>
           <div className="bw-draftbar">
+            {pillars.length > 0 && (
+              <div className="bw-draftbar-pillar">
+                <span className="bw-draftbar-pillar-label">Pillar</span>
+                <select
+                  className="bw-select xs"
+                  value={draftPillar || ""}
+                  onChange={(e) => setDraftPillar && setDraftPillar(e.target.value)}
+                  style={draftPillar && pillars.find((p) => p.id === draftPillar)
+                    ? { color: pillars.find((p) => p.id === draftPillar).color }
+                    : {}}
+                >
+                  <option value="">— untagged</option>
+                  {pillars.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </div>
+            )}
             <button className="bw-btn" onClick={saveDraft}>Save to Posts →</button>
             <button className="bw-btn ghost" onClick={buildContent}>Regenerate</button>
             {scheduleAndPublish && (

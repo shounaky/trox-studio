@@ -1482,3 +1482,72 @@ textarea.bw-input { resize: vertical; min-height: 80px; width: 100%; }
 }
 .bw-brief-title { font-family:'Fraunces'; font-weight:600; font-size:15px; margin-bottom:4px; color:var(--ink); }
 .bw-brief-sub   { font-size:12px; color:var(--ink-2); margin-bottom:12px; }
+
+/* ══════════════════════════════════════════════════════════
+   POSTS TAB
+══════════════════════════════════════════════════════════ */
+.bw-posts-filterbar { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.bw-posts-filters   { display:flex; gap:6px; flex-wrap:wrap; }
+.bw-posts-filter {
+  background:transparent; border:1px solid var(--line); color:var(--ink-2);
+  border-radius:999px; padding:5px 14px; font-size:12px; cursor:pointer;
+  transition:all .2s ease;
+}
+.bw-posts-filter:hover { border-color:var(--gold); color:var(--gold); }
+.bw-posts-filter.on { border-color:var(--gold); color:var(--gold); background:rgba(201,168,108,.08); }
+.bw-posts-filter.sm { font-size:11px; padding:3px 10px; }
+.bw-posts-nudge {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(123,167,240,.07); border:1px solid rgba(123,167,240,.2);
+  border-radius:10px; padding:9px 14px; font-size:12px; color:var(--ink-2);
+  margin-bottom:14px;
+}
+.bw-posts-nudge-icon { color:#7BA7F0; font-size:14px; }
+.bw-sched-badge {
+  font-size:10px; color:var(--gold); font-weight:700; padding:3px 8px;
+  background:rgba(201,168,108,.1); border-radius:999px; border:1px solid rgba(201,168,108,.2);
+}
+
+/* Pillar picker on post cards */
+.bw-pillar-picker { display:flex; align-items:center; gap:8px; margin-top:10px; }
+.bw-pillar-picker-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; flex-shrink:0; }
+.bw-select.xs { font-size:11px; padding:4px 8px; min-width:0; width:auto; max-width:220px; }
+
+/* Mock engagement chips on published posts */
+.bw-mock-eng { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; padding:10px 12px; background:var(--card-2); border-radius:10px; border:1px solid var(--line); }
+.bw-mock-eng-stat { display:flex; flex-direction:column; align-items:center; min-width:40px; }
+.bw-mock-eng-stat .v { font-family:'Fraunces'; font-size:15px; font-weight:700; color:var(--ink); line-height:1; }
+.bw-mock-eng-stat .l { font-size:10px; color:var(--ink-2); margin-top:2px; }
+
+/* ══════════════════════════════════════════════════════════
+   CREATE — PILLAR IN DRAFTBAR
+══════════════════════════════════════════════════════════ */
+.bw-draftbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 0; }
+.bw-draftbar-pillar { display:flex; align-items:center; gap:6px; }
+.bw-draftbar-pillar-label { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); flex-shrink:0; }
+
+/* ══════════════════════════════════════════════════════════
+   COACH TAB
+══════════════════════════════════════════════════════════ */
+.bw-coach-header { margin-bottom:20px; }
+.bw-coach-title  { font-family:'Fraunces'; font-size:26px; font-weight:600; color:var(--ink); margin-bottom:4px; }
+.bw-coach-sub    { font-size:13px; color:var(--ink-2); }
+.bw-coach-brain-badge {
+  display:inline-flex; align-items:center; gap:6px; margin-top:8px;
+  background:rgba(201,168,108,.08); border:1px solid rgba(201,168,108,.2);
+  border-radius:999px; padding:5px 12px; font-size:11.5px; color:var(--gold);
+}
+.bw-coach-checklist-item { display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--ink-2); line-height:1.5; }
+.bw-check-on  { color:var(--ok); font-weight:700; flex-shrink:0; }
+.bw-check-off { color:var(--muted); flex-shrink:0; }
+
+/* ══════════════════════════════════════════════════════════
+   COMMAND CENTER — GOAL CARD
+══════════════════════════════════════════════════════════ */
+.bw-cmd-goal-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+.bw-cmd-goal-numbers { display:flex; align-items:baseline; gap:4px; margin-bottom:2px; }
+.bw-cmd-goal-gained  { font-family:'Fraunces'; font-size:22px; font-weight:700; color:var(--gold); }
+.bw-cmd-goal-target  { font-size:13px; color:var(--ink-2); }
+.bw-cmd-goal-inputs  { display:flex; gap:14px; flex-wrap:wrap; }
+.bw-cmd-goal-field   { display:flex; flex-direction:column; gap:3px; }
+.bw-cmd-goal-field .bw-min { width:90px; }
