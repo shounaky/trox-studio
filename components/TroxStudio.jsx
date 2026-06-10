@@ -16,6 +16,9 @@ import AnalyticsTab from "./tabs/AnalyticsTab";
 import CompetitionTab from "./tabs/CompetitionTab";
 import CoachTab from "./tabs/CoachTab";
 import SettingsTab from "./tabs/SettingsTab";
+import CursorEffect from "./CursorEffect";
+
+const MARQUEE = ["TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·","TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·"];
 
 // ---------------------------------------------------------------------------
 // Main component — state, functions, and layout only
@@ -750,6 +753,7 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
 
   return (
     <div className="bw-root">
+      <CursorEffect />
       <svg className="bw-topwave" viewBox="0 0 1200 54" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M0,30 C150,55 350,5 600,28 C850,50 1050,8 1200,26 L1200,0 L0,0 Z" fill="#C9A86C" opacity="0.08" />
         <path d="M0,38 C200,18 400,52 640,34 C880,16 1040,46 1200,32 L1200,0 L0,0 Z" fill="#7BA7F0" opacity="0.06" />
@@ -790,6 +794,13 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
           </div>
         ) : (
           <>
+            <div className="bw-marquee">
+              <div className="bw-marquee-track">
+                {MARQUEE.map((item, i) => (
+                  <span key={i} className={item === "·" ? "dot" : ""}>{item}</span>
+                ))}
+              </div>
+            </div>
             <div className="bw-tabs">
               {TABS.map((t) => (
                 <button key={t} className={"bw-tab" + (tab === t ? " on" : "")} onClick={() => { setTab(t); setErr(""); setCompAnalysis(""); }}>
@@ -798,83 +809,85 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
               ))}
             </div>
 
-            {tab === "Dashboard" && (
-              <DashboardTab posts={posts} withData={withData} followers={followers} saveFollowers={saveFollowers}
-                playbook={playbook} totalFollows={totalFollows} bestSaves={bestSaves}
-                pct={pct} gained={gained} n={n} s={s} goal={goal}
-                weeklyReport={weeklyReport} weeklyReportDate={weeklyReportDate}
-                genWeeklyReport={genWeeklyReport} busy={busy} copy={copy} />
-            )}
+            <div key={tab} className="bw-tab-content">
+              {tab === "Dashboard" && (
+                <DashboardTab posts={posts} withData={withData} followers={followers} saveFollowers={saveFollowers}
+                  playbook={playbook} totalFollows={totalFollows} bestSaves={bestSaves}
+                  pct={pct} gained={gained} n={n} s={s} goal={goal}
+                  weeklyReport={weeklyReport} weeklyReportDate={weeklyReportDate}
+                  genWeeklyReport={genWeeklyReport} busy={busy} copy={copy} />
+              )}
 
-            {tab === "Create" && (
-              <CreateTab channel={channel} setChannel={setChannel} collection={collection} setCollection={setCollection}
-                theme={theme} setTheme={setTheme} sign={sign} setSign={setSign}
-                angle={angle} setAngle={setAngle} topic={topic} setTopic={setTopic}
-                format={format} setFormat={setFormat} ideas={ideas} setIdeas={setIdeas}
-                draftContent={draftContent} setDraftContent={setDraftContent}
-                imageBrief={imageBrief} setImageBrief={setImageBrief}
-                busy={busy} err={err} activeKey={activeKey} setTab={setTab}
-                genIdeas={genIdeas} buildContent={buildContent} saveDraft={saveDraft}
-                genImageBrief={genImageBrief} copy={copy} />
-            )}
+              {tab === "Create" && (
+                <CreateTab channel={channel} setChannel={setChannel} collection={collection} setCollection={setCollection}
+                  theme={theme} setTheme={setTheme} sign={sign} setSign={setSign}
+                  angle={angle} setAngle={setAngle} topic={topic} setTopic={setTopic}
+                  format={format} setFormat={setFormat} ideas={ideas} setIdeas={setIdeas}
+                  draftContent={draftContent} setDraftContent={setDraftContent}
+                  imageBrief={imageBrief} setImageBrief={setImageBrief}
+                  busy={busy} err={err} activeKey={activeKey} setTab={setTab}
+                  genIdeas={genIdeas} buildContent={buildContent} saveDraft={saveDraft}
+                  genImageBrief={genImageBrief} copy={copy} />
+              )}
 
-            {tab === "Posts" && (
-              <PostsTab posts={posts} savePosts={savePosts} logOpen={logOpen} setLogOpen={setLogOpen}
-                logForm={logForm} setLogForm={setLogForm} busy={busy} submitLog={submitLog} copy={copy} />
-            )}
+              {tab === "Posts" && (
+                <PostsTab posts={posts} savePosts={savePosts} logOpen={logOpen} setLogOpen={setLogOpen}
+                  logForm={logForm} setLogForm={setLogForm} busy={busy} submitLog={submitLog} copy={copy} />
+              )}
 
-            {tab === "Calendar" && (
-              <CalendarTab posts={posts} schedule={schedule}
-                calendarYear={calendarYear} calendarMonth={calendarMonth}
-                setCalendarYear={setCalendarYear} setCalendarMonth={setCalendarMonth}
-                schedulePost={schedulePost} unschedulePost={unschedulePost}
-                calendarPlan={calendarPlan} genCalendarPlan={genCalendarPlan}
-                busy={busy} setTab={setTab} copy={copy} />
-            )}
+              {tab === "Calendar" && (
+                <CalendarTab posts={posts} schedule={schedule}
+                  calendarYear={calendarYear} calendarMonth={calendarMonth}
+                  setCalendarYear={setCalendarYear} setCalendarMonth={setCalendarMonth}
+                  schedulePost={schedulePost} unschedulePost={unschedulePost}
+                  calendarPlan={calendarPlan} genCalendarPlan={genCalendarPlan}
+                  busy={busy} setTab={setTab} copy={copy} />
+              )}
 
-            {tab === "Trends" && (
-              <TrendsTab trends={trends} trendLastRun={trendLastRun} busy={busy} err={err}
-                activeKey={activeKey} setTab={setTab} runTrendDiscovery={runTrendDiscovery}
-                copy={copy} setTopicFromTrend={(t) => { setTopic(t); }} />
-            )}
+              {tab === "Trends" && (
+                <TrendsTab trends={trends} trendLastRun={trendLastRun} busy={busy} err={err}
+                  activeKey={activeKey} setTab={setTab} runTrendDiscovery={runTrendDiscovery}
+                  copy={copy} setTopicFromTrend={(t) => { setTopic(t); }} />
+              )}
 
-            {tab === "Analytics" && (
-              <AnalyticsTab igSessionId={igSessionId} igToken={igToken} igAccountId={igAccountId}
-                igAccount={igAccount} igMedia={igMedia} igSyncing={igSyncing}
-                igError={igError} igLastSync={igLastSync} igAnalysis={igAnalysis}
-                busy={busy} setTab={setTab} syncInstagram={syncInstagram}
-                syncWithSession={syncWithSession} disconnectInstagram={disconnectInstagram}
-                analyzeInstagram={analyzeInstagram} fetchTopCommentsThenAnalyze={fetchTopCommentsThenAnalyze}
-                importInsightsJSON={importInsightsJSON} copy={copy} />
-            )}
+              {tab === "Analytics" && (
+                <AnalyticsTab igSessionId={igSessionId} igToken={igToken} igAccountId={igAccountId}
+                  igAccount={igAccount} igMedia={igMedia} igSyncing={igSyncing}
+                  igError={igError} igLastSync={igLastSync} igAnalysis={igAnalysis}
+                  busy={busy} setTab={setTab} syncInstagram={syncInstagram}
+                  syncWithSession={syncWithSession} disconnectInstagram={disconnectInstagram}
+                  analyzeInstagram={analyzeInstagram} fetchTopCommentsThenAnalyze={fetchTopCommentsThenAnalyze}
+                  importInsightsJSON={importInsightsJSON} copy={copy} />
+              )}
 
-            {tab === "Competition" && (
-              <CompetitionTab competitors={competitors} compInput={compInput} setCompInput={setCompInput}
-                compAnalysis={compAnalysis} busy={busy} err={err}
-                addCompetitor={addCompetitor} removeCompetitor={removeCompetitor}
-                fetchCompetitor={fetchCompetitor} genCompAnalysis={genCompAnalysis} copy={copy} />
-            )}
+              {tab === "Competition" && (
+                <CompetitionTab competitors={competitors} compInput={compInput} setCompInput={setCompInput}
+                  compAnalysis={compAnalysis} busy={busy} err={err}
+                  addCompetitor={addCompetitor} removeCompetitor={removeCompetitor}
+                  fetchCompetitor={fetchCompetitor} genCompAnalysis={genCompAnalysis} copy={copy} />
+              )}
 
-            {tab === "Coach" && (
-              <CoachTab coach={coach} busy={busy} err={err} activeKey={activeKey}
-                setTab={setTab} runCoach={runCoach} copy={copy} />
-            )}
+              {tab === "Coach" && (
+                <CoachTab coach={coach} busy={busy} err={err} activeKey={activeKey}
+                  setTab={setTab} runCoach={runCoach} copy={copy} />
+              )}
 
-            {tab === "Settings" && (
-              <SettingsTab aiProvider={aiProvider} selectProvider={selectProvider}
-                groqKey={groqKey} claudeKey={claudeKey}
-                keyInput={keyInput} setKeyInput={setKeyInput}
-                keySaved={keySaved} saveKey={saveKey}
-                igSessionId={igSessionId} igSessionInput={igSessionInput}
-                setIgSessionInput={setIgSessionInput} saveSession={saveSession}
-                igAppId={igAppId} igAppIdInput={igAppIdInput} setIgAppIdInput={setIgAppIdInput}
-                igAppSecret={igAppSecret} igAppSecretInput={igAppSecretInput}
-                setIgAppSecretInput={setIgAppSecretInput} igAccount={igAccount}
-                igError={igError} oauthStarting={oauthStarting}
-                startInstagramOAuth={startInstagramOAuth} disconnectInstagram={disconnectInstagram}
-                webhookUrl={webhookUrl} setWebhookUrl={setWebhookUrl} saveWebhookUrl={saveWebhookUrl}
-                apiKey={apiKey} generateApiKey={generateApiKey} revokeApiKey={revokeApiKey} />
-            )}
+              {tab === "Settings" && (
+                <SettingsTab aiProvider={aiProvider} selectProvider={selectProvider}
+                  groqKey={groqKey} claudeKey={claudeKey}
+                  keyInput={keyInput} setKeyInput={setKeyInput}
+                  keySaved={keySaved} saveKey={saveKey}
+                  igSessionId={igSessionId} igSessionInput={igSessionInput}
+                  setIgSessionInput={setIgSessionInput} saveSession={saveSession}
+                  igAppId={igAppId} igAppIdInput={igAppIdInput} setIgAppIdInput={setIgAppIdInput}
+                  igAppSecret={igAppSecret} igAppSecretInput={igAppSecretInput}
+                  setIgAppSecretInput={setIgAppSecretInput} igAccount={igAccount}
+                  igError={igError} oauthStarting={oauthStarting}
+                  startInstagramOAuth={startInstagramOAuth} disconnectInstagram={disconnectInstagram}
+                  webhookUrl={webhookUrl} setWebhookUrl={setWebhookUrl} saveWebhookUrl={saveWebhookUrl}
+                  apiKey={apiKey} generateApiKey={generateApiKey} revokeApiKey={revokeApiKey} />
+              )}
+            </div>
 
             {err && <div className="bw-err">{err}</div>}
           </>
