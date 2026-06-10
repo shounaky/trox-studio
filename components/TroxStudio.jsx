@@ -21,7 +21,7 @@ import CommandCenterTab from "./tabs/CommandCenterTab";
 import BrandBrainTab from "./tabs/BrandBrainTab";
 import InboxTab from "./tabs/InboxTab";
 import DemoModeBanner from "./DemoModeBanner";
-import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, shortBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments } from "../lib/brand-brain";
+import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, shortBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments, getHashtagsForPillar } from "../lib/brand-brain";
 import { MockProvider } from "../lib/providers/mock-publishing";
 
 const MARQUEE = ["TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·","TROX STUDIO","·","AI CONTENT INTELLIGENCE","·","@TROXCREATIONS","·","PREMIUM HANDCRAFTED JOURNALS","·","EST. 2024","·"];
@@ -136,6 +136,17 @@ export default function TroxStudio() {
 
   // Create — pillar tagging
   const [draftPillar, setDraftPillar] = useState("");
+
+  // Caption Formatter
+  const [formattedCaption, setFormattedCaption] = useState("");
+  const [formatBusy, setFormatBusy] = useState(false);
+
+  // Hashtag Vault
+  const [hashtagSuggesting, setHashtagSuggesting] = useState("");
+
+  // Content Series
+  const [seriesBriefs, setSeriesBriefs] = useState(null);
+  const [seriesBusy, setSeriesBusy] = useState(false);
 
   // UI
   const [tab, setTab] = useState("Home");
@@ -257,6 +268,73 @@ export default function TroxStudio() {
   function addInsight(text) {
     const updated = addInsightToMemory(brandBrain, text, "manual");
     saveBrandBrain(updated);
+  }
+
+  function autoLearn(text, source = "performance") {
+    if (!text || !brandBrain) return;
+    const updated = addInsightToMemory(brandBrain, text, source);
+    saveBrandBrain(updated);
+  }
+
+  async function suggestHashtags(pillarId, pillarLabel, existingTags) {
+    if (noKeyGuard()) return;
+    setHashtagSuggesting(pillarId);
+    try {
+      const d = await callGenerate("suggest-hashtags", { pillarLabel, existingTags });
+      if (d.hashtags?.length && brandBrain) {
+        const vault = brandBrain.hashtagVault || {};
+        const existing = vault[pillarId] || [];
+        const newTags = (d.hashtags || []).filter((t) => !existing.includes(t));
+        const updated = { ...vault, [pillarId]: [...existing, ...newTags] };
+        saveBrandBrain({ ...brandBrain, hashtagVault: updated });
+      }
+    } catch (e) { setErr(e.message); }
+    setHashtagSuggesting("");
+  }
+
+  async function genContentSeries(theme, postCount, pillarId) {
+    if (noKeyGuard() || !theme?.trim()) return;
+    setSeriesBusy(true); setSeriesBriefs(null);
+    const pillar = brandBrain?.pillars?.find((p) => p.id === pillarId);
+    try {
+      const d = await callGenerate("content-series", {
+        theme,
+        postCount,
+        channel: "Instagram",
+        pillarLabel: pillar?.label || "",
+      });
+      setSeriesBriefs(d);
+    } catch (e) { setErr(e.message); }
+    setSeriesBusy(false);
+  }
+
+  function addSeriesToPosts(seriesData, pillarId) {
+    if (!seriesData?.posts?.length) return;
+    const newPosts = seriesData.posts.map((p) => ({
+      id: uid(),
+      type: p.format || "Post",
+      channel: "instagram",
+      title: `[${seriesData.seriesName}] ${p.title}`,
+      content: `Hook: ${p.hook}\n\nAngle: ${p.angle}\n\nCTA: ${p.cta}`,
+      pillar: pillarId || "",
+      status: "planned",
+      createdAt: Date.now(),
+      metrics: null,
+      insight: "",
+    }));
+    savePosts([...newPosts, ...posts]);
+    setSeriesBriefs(null);
+    setTab("Posts");
+  }
+
+  async function formatCaption(caption, captionChannel) {
+    if (noKeyGuard() || !caption?.trim()) return;
+    setFormatBusy(true); setFormattedCaption("");
+    try {
+      const d = await callGenerate("format-caption", { caption, channel: captionChannel });
+      setFormattedCaption(d.formatted || "");
+    } catch (e) { setErr(e.message); }
+    setFormatBusy(false);
   }
 
   // ---------------------------------------------------------------------------
@@ -606,7 +684,7 @@ export default function TroxStudio() {
     if (noKeyGuard()) return;
     const subject = composeSubject();
     if (!subject) { setErr("Pick a collection/theme or type a topic first."); return; }
-    setBusy("build"); setErr(""); setDraftContent(null); setImageBrief("");
+    setBusy("build"); setErr(""); setDraftContent(null); setImageBrief(""); setFormattedCaption("");
     const bb = shortBrainCtx(brandBrain);
     try {
       const out = await callAI(`${learnCtx(profile, playbook)}${bb ? "\n\n" + bb : ""}\n\nCreate a ${format} for ${channelLabel(channel)} about: ${subject}.\n${buildInstructions(format)}\nWrite 100% in Trox's premium, reflective, philosophical voice. Speak to the personas above. Plain text only, no markdown.`);
@@ -650,6 +728,7 @@ export default function TroxStudio() {
       setPlaybook(newPlay); persist(KEYS.playbook, newPlay);
       if (m.follows && !isNaN(+m.follows)) saveFollowers({ ...followers, now: String(+(followers.now || followers.start || 0) + +m.follows) });
       setLogOpen(null);
+      if (insight) autoLearn(insight, "performance");
       dispatchWebhook("POST_METRICS_LOGGED", { title: p.title, insight });
     } catch (e) { setErr(e.message || "Couldn't analyze — try again."); }
     setBusy("");
@@ -771,7 +850,8 @@ export default function TroxStudio() {
     const hasContentData = competitors.some((c) => c.posts_data?.length);
     const dataNote = hasContentData ? "" : "\n\nNote: No Instagram session ID set — analysis is based on profile data only. Add your session ID in Settings and re-fetch competitors for caption-level analysis.";
 
-    const prompt = `${learnCtx(profile, playbook)}
+    const bbCtxComp = brandBrain ? `\n\n${brandBrainCtx(brandBrain)}` : "";
+    const prompt = `${learnCtx(profile, playbook)}${bbCtxComp}
 
 TROX CREATIONS:
 ${troxContent}
@@ -802,6 +882,9 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
     try {
       const out = await callAI(prompt);
       setCompAnalysis(out);
+      // Auto-extract the biggest gap and add to Brand Brain memory
+      const gapMatch = out.match(/CONTENT GAPS[^]*?ANGLE[:\s]*([^\n]+)/i) || out.match(/UNCONTESTED[:\s-–]+([^\n]+)/i);
+      if (gapMatch?.[1]?.trim()) autoLearn("Competitive gap: " + gapMatch[1].trim(), "competition");
       dispatchWebhook("COMP_ANALYSIS_GENERATED", { competitorCount: competitors.length, hasContentData });
     } catch (e) { setErr(e.message || "Couldn't run analysis — try again."); }
     setBusy("");
@@ -889,6 +972,11 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
       setWeeklyReport(out);
       persist(KEYS.weeklyReport, out);
       const now = Date.now(); setWeeklyReportDate(now); persist(KEYS.weeklyReportDate, String(now));
+      // Auto-extract top learning from report and add to Brand Brain memory
+      const topWinMatch = out.match(/TOP WIN[:\s-–]+([^\n]+)/i);
+      const improveMatch = out.match(/WHAT TO IMPROVE[:\s-–]+([^\n]+)/i);
+      const learnText = topWinMatch?.[1]?.trim() || improveMatch?.[1]?.trim();
+      if (learnText) autoLearn("Weekly report: " + learnText, "weekly-report");
       dispatchWebhook("WEEKLY_REPORT_GENERATED", { date: new Date().toISOString() });
     } catch (e) { setErr(e.message); }
     setBusy("");
@@ -993,7 +1081,8 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
               )}
 
               {tab === "Brand Brain" && (
-                <BrandBrainTab brandBrain={brandBrain} saveBrandBrain={saveBrandBrain} addInsight={addInsight} />
+                <BrandBrainTab brandBrain={brandBrain} saveBrandBrain={saveBrandBrain} addInsight={addInsight}
+                  suggestHashtags={suggestHashtags} hashtagSuggesting={hashtagSuggesting} />
               )}
 
               {tab === "Create" && (
@@ -1011,7 +1100,8 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   repurposeText={repurposeText} setRepurposeText={setRepurposeText}
                   repurposePlatforms={repurposePlatforms} setRepurposePlatforms={setRepurposePlatforms}
                   repurposed={repurposed} repurposing={repurposing} doRepurpose={doRepurpose}
-                  draftPillar={draftPillar} setDraftPillar={setDraftPillar} brandBrain={brandBrain} />
+                  draftPillar={draftPillar} setDraftPillar={setDraftPillar} brandBrain={brandBrain}
+                  formattedCaption={formattedCaption} formatBusy={formatBusy} formatCaption={formatCaption} />
               )}
 
               {tab === "Posts" && (
@@ -1028,7 +1118,9 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
                   schedulePost={schedulePost} unschedulePost={unschedulePost}
                   calendarPlan={calendarPlan} genCalendarPlan={genCalendarPlan}
                   busy={busy} setTab={setTab} copy={copy}
-                  brandBrain={brandBrain} publishPost={publishPost} publishLoading={publishLoading} />
+                  brandBrain={brandBrain} publishPost={publishPost} publishLoading={publishLoading}
+                  seriesBriefs={seriesBriefs} seriesBusy={seriesBusy}
+                  genContentSeries={genContentSeries} addSeriesToPosts={addSeriesToPosts} />
               )}
 
               {tab === "Inbox" && (

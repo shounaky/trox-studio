@@ -40,6 +40,8 @@ export default function CreateTab({
   // Pillar
   draftPillar, setDraftPillar,
   brandBrain,
+  // Caption Formatter
+  formattedCaption, formatBusy, formatCaption,
 }) {
   const [showRepurpose, setShowRepurpose] = useState(false);
   const pillars = brandBrain?.pillars || [];
@@ -261,6 +263,55 @@ export default function CreateTab({
                       <div className="bw-hook-why">{h.why}</div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Hashtag Suggestions */}
+          {draftPillar && (brandBrain?.hashtagVault?.[draftPillar] || []).length > 0 && (
+            <div className="bw-hashtag-suggest">
+              <div className="bw-hashtag-suggest-header">
+                <span className="bw-hashtag-suggest-label">Hashtags for this pillar</span>
+                <button
+                  className="bw-mini"
+                  onClick={() => copy((brandBrain.hashtagVault[draftPillar] || []).join(" "))}
+                >
+                  Copy all
+                </button>
+              </div>
+              <div className="bw-hashtag-tags">
+                {(brandBrain.hashtagVault[draftPillar] || []).map((tag) => (
+                  <span
+                    key={tag}
+                    className="bw-hashtag-chip sm"
+                    onClick={() => copy(tag)}
+                    title="Click to copy"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Caption Formatter */}
+          {formatCaption && (
+            <div className="bw-formatter">
+              <div className="bw-formatter-row">
+                <span className="bw-formatter-label">Format for {channel}</span>
+                <button
+                  className="bw-mini"
+                  onClick={() => formatCaption(draftContent.content, channel)}
+                  disabled={formatBusy}
+                >
+                  {formatBusy ? "Formatting…" : "Format for " + (channel === "instagram" ? "Instagram" : channel === "linkedin" ? "LinkedIn" : "platform")}
+                </button>
+              </div>
+              {formattedCaption && (
+                <div className="bw-formatter-out">
+                  <button className="bw-copy" onClick={() => copy(formattedCaption)}>copy</button>
+                  {formattedCaption}
                 </div>
               )}
             </div>

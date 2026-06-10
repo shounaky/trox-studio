@@ -46,9 +46,18 @@ export default function CalendarTab({
   brandBrain,
   publishPost,
   publishLoading,
+  // Series Builder
+  seriesBriefs,
+  seriesBusy,
+  genContentSeries,
+  addSeriesToPosts,
 }) {
   const [pickerOpen, setPickerOpen] = useState(null);
   const [pickerDate, setPickerDate] = useState("");
+  const [showSeries, setShowSeries] = useState(false);
+  const [seriesTheme, setSeriesTheme] = useState("");
+  const [seriesCount, setSeriesCount] = useState(4);
+  const [seriesPillar, setSeriesPillar] = useState("");
 
   const today    = dateStr(new Date());
   const days     = buildMonthGrid(calendarYear, calendarMonth);
@@ -208,6 +217,103 @@ export default function CalendarTab({
           <div className="bw-out">{calendarPlan}</div>
         </div>
       )}
+
+      {/* Content Series Builder */}
+      <div className="bw-series-builder">
+        <button
+          className="bw-series-toggle"
+          onClick={() => setShowSeries((v) => !v)}
+        >
+          {showSeries ? "▾" : "▸"} Plan a Content Series
+          <span className="bw-series-sub">Generate a multi-post campaign from a single brief</span>
+        </button>
+
+        {showSeries && (
+          <div className="bw-series-body">
+            <div className="bw-series-form">
+              <div className="bw-series-field">
+                <label className="bw-field-label">Series Theme</label>
+                <input
+                  className="bw-input"
+                  placeholder="e.g. Diwali gifting — 5 reasons to journal this season"
+                  value={seriesTheme}
+                  onChange={(e) => setSeriesTheme(e.target.value)}
+                />
+              </div>
+              <div className="bw-series-row">
+                <div className="bw-series-field sm">
+                  <label className="bw-field-label">Posts</label>
+                  <select
+                    className="bw-select xs"
+                    value={seriesCount}
+                    onChange={(e) => setSeriesCount(+e.target.value)}
+                  >
+                    {[2, 3, 4, 5, 6, 8].map((n) => (
+                      <option key={n} value={n}>{n} posts</option>
+                    ))}
+                  </select>
+                </div>
+                {(brandBrain?.pillars || []).length > 0 && (
+                  <div className="bw-series-field sm">
+                    <label className="bw-field-label">Pillar</label>
+                    <select
+                      className="bw-select xs"
+                      value={seriesPillar}
+                      onChange={(e) => setSeriesPillar(e.target.value)}
+                    >
+                      <option value="">— any —</option>
+                      {(brandBrain?.pillars || []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.label.split(" ")[0]}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <button
+                className="bw-btn"
+                onClick={() => genContentSeries && genContentSeries(seriesTheme, seriesCount, seriesPillar)}
+                disabled={seriesBusy || !seriesTheme.trim()}
+              >
+                {seriesBusy ? "Planning series…" : "Generate Series Plan →"}
+              </button>
+            </div>
+
+            {seriesBusy && (
+              <div className="bw-load"><div className="bw-spin" />Designing your {seriesCount}-post series…</div>
+            )}
+
+            {seriesBriefs && (
+              <div className="bw-series-result">
+                <div className="bw-series-result-header">
+                  <div>
+                    <div className="bw-series-name">{seriesBriefs.seriesName}</div>
+                    <div className="bw-series-hook">{seriesBriefs.seriesHook}</div>
+                  </div>
+                  <button
+                    className="bw-btn sm ok"
+                    onClick={() => addSeriesToPosts && addSeriesToPosts(seriesBriefs, seriesPillar)}
+                  >
+                    Add all to Posts →
+                  </button>
+                </div>
+                <div className="bw-series-posts">
+                  {(seriesBriefs.posts || []).map((p) => (
+                    <div className="bw-series-post" key={p.number}>
+                      <div className="bw-series-post-num">{p.number}</div>
+                      <div className="bw-series-post-body">
+                        <div className="bw-series-post-fmt">{p.format}</div>
+                        <div className="bw-series-post-title">{p.title}</div>
+                        <div className="bw-series-post-hook">&ldquo;{p.hook}&rdquo;</div>
+                        <div className="bw-series-post-meta">{p.angle} · CTA: {p.cta}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Unscheduled Queue */}
       <div className="bw-cal-unscheduled">

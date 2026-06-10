@@ -2,12 +2,13 @@
 import React, { useState } from "react";
 import { upcomingMoments } from "../../lib/brand-brain";
 
-export default function BrandBrainTab({ brandBrain, saveBrandBrain, addInsight }) {
+export default function BrandBrainTab({ brandBrain, saveBrandBrain, addInsight, suggestHashtags, hashtagSuggesting }) {
   const brain = brandBrain || {};
   const [activeSection, setActiveSection] = useState("personas");
   const [newInsight, setNewInsight] = useState("");
   const [newGoodVoice, setNewGoodVoice] = useState("");
   const [newBadVoice, setNewBadVoice] = useState("");
+  const [newHashtag, setNewHashtag] = useState({});
 
   const personas        = brain.personas        || [];
   const pillars         = brain.pillars         || [];
@@ -73,13 +74,43 @@ export default function BrandBrainTab({ brandBrain, saveBrandBrain, addInsight }
     });
   }
 
-  const sections = ["personas", "pillars", "voice", "seasons", "memory"];
+  const hashtagVault = brain.hashtagVault || {};
+
+  function addHashtag(pillarId, tag) {
+    const cleaned = tag.trim().startsWith("#") ? tag.trim() : "#" + tag.trim();
+    if (!cleaned || cleaned === "#") return;
+    const existing = hashtagVault[pillarId] || [];
+    if (existing.includes(cleaned)) return;
+    saveBrandBrain({
+      ...brain,
+      hashtagVault: { ...hashtagVault, [pillarId]: [...existing, cleaned] },
+    });
+    setNewHashtag((prev) => ({ ...prev, [pillarId]: "" }));
+  }
+
+  function removeHashtag(pillarId, tag) {
+    saveBrandBrain({
+      ...brain,
+      hashtagVault: {
+        ...hashtagVault,
+        [pillarId]: (hashtagVault[pillarId] || []).filter((t) => t !== tag),
+      },
+    });
+  }
+
+  function copyHashtags(pillarId) {
+    const tags = (hashtagVault[pillarId] || []).join(" ");
+    try { navigator.clipboard.writeText(tags); } catch {}
+  }
+
+  const sections = ["personas", "pillars", "voice", "seasons", "memory", "hashtags"];
   const sectionLabels = {
     personas: "Personas",
     pillars:  "Pillars",
     voice:    "Voice",
     seasons:  "Calendar",
     memory:   "Learning",
+    hashtags: "Hashtags",
   };
 
   return (
@@ -238,6 +269,69 @@ export default function BrandBrainTab({ brandBrain, saveBrandBrain, addInsight }
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* HASHTAG VAULT */}
+      {activeSection === "hashtags" && (
+        <div className="bw-brain-section">
+          <div className="bw-brain-section-title">Hashtag Vault</div>
+          <div className="bw-pillar-note">
+            One-click copy for each pillar. Use the Suggest button to fill gaps with AI.
+          </div>
+          {pillars.map((p) => {
+            const tags = hashtagVault[p.id] || [];
+            return (
+              <div className="bw-hashtag-bucket" key={p.id}>
+                <div className="bw-hashtag-bucket-header">
+                  <div className="bw-hashtag-bucket-name" style={{ color: p.color }}>
+                    <div className="bw-pillar-dot" style={{ background: p.color }} />
+                    {p.label.split(" ")[0]}
+                  </div>
+                  <div className="bw-hashtag-bucket-actions">
+                    <span className="bw-hashtag-count">{tags.length} tags</span>
+                    <button className="bw-mini" onClick={() => copyHashtags(p.id)}>Copy all</button>
+                    {suggestHashtags && (
+                      <button
+                        className="bw-mini"
+                        onClick={() => suggestHashtags(p.id, p.label, tags)}
+                        disabled={hashtagSuggesting === p.id}
+                      >
+                        {hashtagSuggesting === p.id ? "Suggesting…" : "✦ Suggest 10"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="bw-hashtag-tags">
+                  {tags.map((tag) => (
+                    <span className="bw-hashtag-chip" key={tag}>
+                      {tag}
+                      <button className="bw-hashtag-del" onClick={() => removeHashtag(p.id, tag)}>×</button>
+                    </span>
+                  ))}
+                  {tags.length === 0 && (
+                    <span className="bw-hashtag-empty">No tags yet — add below or hit Suggest</span>
+                  )}
+                </div>
+                <div className="bw-hashtag-add">
+                  <input
+                    className="bw-input sm"
+                    placeholder="#yourhashtag"
+                    value={newHashtag[p.id] || ""}
+                    onChange={(e) => setNewHashtag((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") addHashtag(p.id, newHashtag[p.id] || ""); }}
+                  />
+                  <button
+                    className="bw-mini"
+                    onClick={() => addHashtag(p.id, newHashtag[p.id] || "")}
+                    disabled={!(newHashtag[p.id] || "").trim()}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
