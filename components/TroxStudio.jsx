@@ -498,7 +498,42 @@ export default function TroxStudio() {
       const res = await fetch("/api/instagram?username=" + encodeURIComponent(username));
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      saveCompetitors((existing || competitors).map((c) => c.username === username ? { ...c, ...data, loading: false, error: null } : c));
+
+      let postsData = null;
+      let contentStats = null;
+
+      // If session ID is saved, fetch actual post content for richer gap analysis
+      if (igSessionId) {
+        try {
+          const sr = await fetch("/api/instagram-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: igSessionId, username }),
+          });
+          if (sr.ok) {
+            const sd = await sr.json();
+            if (sd.posts?.length) {
+              postsData = sd.posts.slice(0, 12);
+              const n = postsData.length;
+              const reels = postsData.filter((p) => p.is_reel).length;
+              const carousels = postsData.filter((p) => p.media_type === "CAROUSEL_ALBUM").length;
+              const images = n - reels - carousels;
+              const avgLikes = Math.round(postsData.reduce((s, p) => s + (p.like_count || 0), 0) / n);
+              const avgComments = Math.round(postsData.reduce((s, p) => s + (p.comments_count || 0), 0) / n);
+              const tagMap = {};
+              postsData.forEach((p) => {
+                (p.caption || "").match(/#[\w]+/g)?.forEach((t) => { tagMap[t] = (tagMap[t] || 0) + 1; });
+              });
+              const topHashtags = Object.entries(tagMap).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([t]) => t);
+              contentStats = { reels, carousels, images, totalPosts: n, avgLikes, avgComments, topHashtags };
+            }
+          }
+        } catch (_) { /* session fetch failed silently — fall back to profile-only */ }
+      }
+
+      saveCompetitors((existing || competitors).map((c) => c.username === username
+        ? { ...c, ...data, posts_data: postsData, content_stats: contentStats, loading: false, error: null }
+        : c));
     } catch (e) {
       saveCompetitors((existing || competitors).map((c) => c.username === username ? { ...c, loading: false, error: e.message } : c));
     }
@@ -518,10 +553,88 @@ export default function TroxStudio() {
   async function genCompAnalysis() {
     if (noKeyGuard() || !competitors.length) { setErr("Add at least one competitor first."); return; }
     setBusy("comp_analysis"); setErr(""); setCompAnalysis("");
-    const compData = competitors.map((c) => `@${c.username} (${c.displayName}): ${c.followers || "?"} followers, ${c.posts || "?"} posts. Bio: "${c.bio || "unknown"}"`).join("\n");
+
+    // Build rich competitor profiles using real content data where available
+    const compProfiles = competitors.map((c) => {
+      const lines = [`@${c.username} (${c.displayName}): ${c.followers || "?"} followers, ${c.posts || "?"} posts`];
+      if (c.bio) lines.push(`Bio: "${c.bio}"`);
+      const cs = c.content_stats;
+      if (cs) {
+        const { reels, carousels, images, totalPosts: n, avgLikes, avgComments, topHashtags } = cs;
+        lines.push(`Content mix (last ${n} posts): ${reels} Reels (${Math.round(reels / n * 100)}%), ${carousels} Carousels (${Math.round(carousels / n * 100)}%), ${images} Images (${Math.round(images / n * 100)}%)`);
+        lines.push(`Avg engagement per post: ${avgLikes} likes, ${avgComments} comments`);
+        if (topHashtags.length) lines.push(`Top hashtags used: ${topHashtags.join(", ")}`);
+      }
+      if (c.posts_data?.length) {
+        lines.push(`Sample recent captions:`);
+        c.posts_data.slice(0, 6).forEach((p, i) => {
+          if (p.caption) {
+            const fmt = p.is_reel ? "Reel" : p.media_type === "CAROUSEL_ALBUM" ? "Carousel" : "Post";
+            lines.push(`  ${i + 1}. [${fmt} — ${p.like_count || 0} likes, ${p.comments_count || 0} comments] "${p.caption.slice(0, 200).replace(/\n/g, " ")}"`);
+          }
+        });
+      }
+      return lines.join("\n");
+    }).join("\n\n---\n\n");
+
+    // Build Trox's own content snapshot
+    const troxFollowers = +(followers.now || followers.start || 0);
+    let troxContent = `Followers: ${troxFollowers}`;
+    if (igMedia?.length) {
+      const n = igMedia.length;
+      const avgL = Math.round(igMedia.reduce((s, p) => s + (p.like_count || 0), 0) / n);
+      const avgC = Math.round(igMedia.reduce((s, p) => s + (p.comments_count || 0), 0) / n);
+      const troxReels = igMedia.filter((p) => p.is_reel).length;
+      const troxCarousels = igMedia.filter((p) => p.media_type === "CAROUSEL_ALBUM").length;
+      const tagMap2 = {};
+      igMedia.forEach((p) => { (p.caption || "").match(/#[\w]+/g)?.forEach((t) => { tagMap2[t] = (tagMap2[t] || 0) + 1; }); });
+      const troxTags = Object.entries(tagMap2).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([t]) => t);
+      troxContent += `\nContent mix (${n} posts): ${troxReels} Reels (${Math.round(troxReels / n * 100)}%), ${troxCarousels} Carousels (${Math.round(troxCarousels / n * 100)}%), ${n - troxReels - troxCarousels} Images`;
+      troxContent += `\nAvg engagement: ${avgL} likes, ${avgC} comments per post`;
+      if (troxTags.length) troxContent += `\nTop hashtags: ${troxTags.join(", ")}`;
+      const topPost = [...igMedia].sort((a, b) => ((b.like_count || 0) + (b.comments_count || 0)) - ((a.like_count || 0) + (a.comments_count || 0)))[0];
+      if (topPost?.caption) troxContent += `\nBest performing post: "${topPost.caption.slice(0, 200).replace(/\n/g, " ")}" (${topPost.like_count || 0} likes)`;
+      troxContent += `\nSample captions:\n` + igMedia.slice(0, 4).map((p, i) => {
+        const fmt = p.is_reel ? "Reel" : p.media_type === "CAROUSEL_ALBUM" ? "Carousel" : "Post";
+        return `  ${i + 1}. [${fmt} — ${p.like_count || 0} likes] "${(p.caption || "").slice(0, 180).replace(/\n/g, " ")}"`;
+      }).join("\n");
+    }
+
+    const hasContentData = competitors.some((c) => c.posts_data?.length);
+    const dataNote = hasContentData ? "" : "\n\nNote: No Instagram session ID set — analysis is based on profile data only. Add your session ID in Settings and re-fetch competitors for caption-level analysis.";
+
+    const prompt = `${learnCtx(profile, playbook)}
+
+TROX CREATIONS:
+${troxContent}
+
+COMPETITORS:
+${compProfiles}
+${dataNote}
+
+You are an unbiased senior social media strategist with no loyalty to any brand. Analyse the data above and produce a structured report in exactly these 5 sections:
+
+1. COMPETITOR STRENGTHS
+For each competitor, name 2-3 specific things they are genuinely doing well: content format mix, engagement levels, caption hooks, hashtag reach, or positioning. Use actual numbers from the data. Do not understate their strengths.
+
+2. TROX CREATIONS STRENGTHS
+What Trox is genuinely doing well based on its brand, voice, and post data. Be specific and evidence-based.
+
+3. WHERE TROX LAGS
+Name the 2-3 specific areas where competitors outperform Trox right now. Be direct: format, frequency, engagement rate, or content angle. Show the gap with numbers where possible.
+
+4. CONTENT GAPS — 3 UNCONTESTED ANGLES
+Three content angles or formats that none of the competitors are owning well. For each: name the gap, explain why it is available, and describe exactly what a Trox post exploiting that gap would look like (format, hook, angle).
+
+5. THIS WEEK'S MOVES
+Two specific posts to create this week. Give the exact format (Reel/Carousel/Post), the opening hook word-for-word, and a one-sentence reason why it beats the competition right now.
+
+Plain text. No markdown symbols. Every claim must be grounded in the data provided above — no invented statistics.`;
+
     try {
-      const out = await callAI(`${learnCtx(profile, playbook)}\n\nTROX position: ${+(followers.now || followers.start || 0)} followers.\nCOMPETITORS:\n${compData}\n\nTHEIR EDGE, TROX EDGE, CONTENT GAPS (3 angles none own), QUICK WINS (2 posts this week). Plain text, no markdown.`);
+      const out = await callAI(prompt);
       setCompAnalysis(out);
+      dispatchWebhook("COMP_ANALYSIS_GENERATED", { competitorCount: competitors.length, hasContentData });
     } catch (e) { setErr(e.message || "Couldn't run analysis — try again."); }
     setBusy("");
   }
@@ -638,8 +751,8 @@ export default function TroxStudio() {
   return (
     <div className="bw-root">
       <svg className="bw-topwave" viewBox="0 0 1200 54" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,30 C150,55 350,5 600,28 C850,50 1050,8 1200,26 L1200,0 L0,0 Z" fill="#3E74D1" opacity="0.10" />
-        <path d="M0,38 C200,18 400,52 640,34 C880,16 1040,46 1200,32 L1200,0 L0,0 Z" fill="#B08D57" opacity="0.08" />
+        <path d="M0,30 C150,55 350,5 600,28 C850,50 1050,8 1200,26 L1200,0 L0,0 Z" fill="#C9A86C" opacity="0.08" />
+        <path d="M0,38 C200,18 400,52 640,34 C880,16 1040,46 1200,32 L1200,0 L0,0 Z" fill="#7BA7F0" opacity="0.06" />
       </svg>
       <div className="bw-wrap">
         <div className="bw-head">
@@ -763,7 +876,7 @@ export default function TroxStudio() {
                 apiKey={apiKey} generateApiKey={generateApiKey} revokeApiKey={revokeApiKey} />
             )}
 
-            {err && <div className="bw-note" style={{ color: "var(--rose)" }}>{err}</div>}
+            {err && <div className="bw-err">{err}</div>}
           </>
         )}
       </div>
