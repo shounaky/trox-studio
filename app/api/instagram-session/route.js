@@ -8,12 +8,16 @@ const IG_HEADERS = (sessionId, username) => ({
   "Accept-Language": "en-US,en;q=0.9",
 });
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export async function POST(request) {
   try {
     const { sessionId, username } = await request.json();
     if (!sessionId || !username) return Response.json({ error: "Missing sessionId or username." }, { status: 400 });
 
-    const headers = IG_HEADERS(sessionId, username);
+    // Decode URL-encoded session IDs (e.g. %3A → :) — browsers sometimes copy the encoded form
+    const decodedSessionId = decodeURIComponent(sessionId);
+    const headers = IG_HEADERS(decodedSessionId, username);
 
     // Fetch profile info
     const profileRes = await fetch(
@@ -43,20 +47,26 @@ export async function POST(request) {
       profile_picture_url: user.profile_pic_url ?? "",
     };
 
-    // Fetch media pages (up to 48 posts)
+    // Fetch media — 2 pages (24 posts) with a delay to avoid 429 rate limits
     const posts = [];
     let nextCursor = null;
 
-    for (let page = 0; page < 4; page++) {
+    for (let page = 0; page < 2; page++) {
+      if (page > 0) await sleep(1200); // wait 1.2s between pages to avoid rate limiting
+
       const feedUrl = `https://www.instagram.com/api/v1/feed/user/${userId}/?count=12${nextCursor ? "&max_id=" + nextCursor : ""}`;
       const feedRes = await fetch(feedUrl, { headers });
+
+      if (feedRes.status === 429) {
+        // Rate limited — return what we have so far (profile + any posts already fetched)
+        break;
+      }
       if (!feedRes.ok) break;
 
       const feedData = await feedRes.json();
       const items = feedData.items || [];
 
       for (const item of items) {
-        const isReel = item.product_type === "clips" || item.media_type === 2;
         const isCarousel = item.media_type === 8;
         posts.push({
           id: item.id,
@@ -69,7 +79,6 @@ export async function POST(request) {
           like_count: item.like_count || 0,
           comments_count: item.comment_count || 0,
           play_count: item.play_count || item.view_count || 0,
-          // carousel sub-items count
           carousel_count: isCarousel ? (item.carousel_media?.length || 0) : 0,
         });
       }

@@ -502,7 +502,14 @@ export default function TroxStudio() {
         return { ...post, insights };
       }));
       setIgMedia(enriched); persist(KEYS.igMedia, enriched);
-      if (!accData.error) { setIgAccount(accData); persist(KEYS.igAccount, accData); }
+      if (!accData.error) {
+        setIgAccount(accData); persist(KEYS.igAccount, accData);
+        if (accData.followers_count) {
+          const liveCount = String(accData.followers_count);
+          setFollowers((prev) => ({ ...prev, now: liveCount }));
+          persist(KEYS.followers, { ...followers, now: liveCount });
+        }
+      }
       const now = Date.now(); setIgLastSync(now); persist(KEYS.igLastSync, String(now));
       dispatchWebhook("IG_SYNC_COMPLETED", { count: enriched.length });
     } catch (e) { setIgError(e.message); }
@@ -522,6 +529,12 @@ export default function TroxStudio() {
       const mapped = (data.posts || []).map((p) => ({ ...p, insights: { plays: p.play_count || 0 } }));
       setIgMedia(mapped); setIgAccount({ ...data.account });
       persist(KEYS.igMedia, mapped); persist(KEYS.igAccount, data.account);
+      // Auto-update follower count from live data
+      if (data.account?.followers_count) {
+        const liveCount = String(data.account.followers_count);
+        setFollowers((prev) => ({ ...prev, now: liveCount }));
+        persist(KEYS.followers, { ...followers, now: liveCount });
+      }
       const now = Date.now(); setIgLastSync(now); persist(KEYS.igLastSync, String(now));
       dispatchWebhook("IG_SYNC_COMPLETED", { count: mapped.length });
     } catch (e) { setIgError(e.message); }
