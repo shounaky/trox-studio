@@ -176,28 +176,6 @@ export default function PostsTab({
                 </div>
               )}
 
-              {/* Mock engagement for published posts */}
-              {p.status === "published" && p.mockEngagement && (
-                <div className="bw-mock-eng">
-                  <div className="bw-mock-eng-stat">
-                    <span className="v">{p.mockEngagement.likes || 0}</span>
-                    <span className="l">likes</span>
-                  </div>
-                  <div className="bw-mock-eng-stat">
-                    <span className="v">{p.mockEngagement.comments || 0}</span>
-                    <span className="l">comments</span>
-                  </div>
-                  <div className="bw-mock-eng-stat">
-                    <span className="v">{p.mockEngagement.saves || 0}</span>
-                    <span className="l">saves</span>
-                  </div>
-                  <div className="bw-mock-eng-stat">
-                    <span className="v">{p.mockEngagement.reach || 0}</span>
-                    <span className="l">reach</span>
-                  </div>
-                </div>
-              )}
-
               {p.insight && <div className="bw-insight">{p.insight}</div>}
 
               {p.status === "planned" && logOpen !== p.id && (
@@ -211,9 +189,6 @@ export default function PostsTab({
               {p.status === "published" && (
                 <div className="bw-cardbtns">
                   <button className="bw-mini go" onClick={() => openLog(p)}>Log results</button>
-                  {refreshPostEngagement && p.publishedId && (
-                    <button className="bw-mini" onClick={() => refreshPostEngagement(p)}>↻ Engagement</button>
-                  )}
                   <button className="bw-mini" onClick={() => copy(p.content)}>Copy</button>
                   <button className="bw-mini" onClick={() => savePosts(posts.filter((x) => x.id !== p.id))}>Delete</button>
                 </div>

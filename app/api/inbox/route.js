@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 import Groq from "groq-sdk";
-import { generateMockInbox } from "../../../lib/mock-data";
 
 function buildClient(provider, apiKey) {
   if (provider === "claude") {
@@ -31,9 +30,7 @@ async function runPrompt({ type, client }, prompt) {
 }
 
 export async function GET() {
-  // Returns mock inbox — real IG comments fetched client-side from /api/instagram-comments
-  const messages = generateMockInbox();
-  return Response.json({ messages, source: "mock" });
+  return Response.json({ messages: [] });
 }
 
 export async function POST(request) {

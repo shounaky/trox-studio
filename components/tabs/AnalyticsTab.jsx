@@ -2,16 +2,12 @@
 import React, { useState, useMemo } from "react";
 import { fmtNum, timeAgo } from "../../lib/utils";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
-  CartesianGrid, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip,
+  CartesianGrid, ResponsiveContainer,
 } from "recharts";
-import {
-  generateFollowerHistory,
-  generateEngagementHistory,
-  generatePostPerformance,
-} from "../../lib/mock-data";
+import { generatePostPerformance } from "../../lib/mock-data";
 
-const CHART_COLORS = { gold: "#C9A86C", blue: "#7BA7F0", rose: "#D4806E", green: "#6DC48B" };
+const CHART_COLORS = { gold: "#C9A86C", blue: "#7BA7F0" };
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -50,7 +46,6 @@ export default function AnalyticsTab({
   const [importInput, setImportInput] = useState("");
   const [importMsg, setImportMsg]     = useState("");
   const [activeView, setActiveView]   = useState("instagram");
-  const [chartPeriod, setChartPeriod] = useState(30);
 
   const connected = igSessionId || (igToken && igAccountId);
 
@@ -61,10 +56,8 @@ export default function AnalyticsTab({
       )
     : 0;
 
-  // Generate chart data from real or mock sources
-  const followerData    = useMemo(() => generateFollowerHistory(igAccount?.followers_count || 4820, chartPeriod), [igAccount?.followers_count, chartPeriod]);
-  const engagementData  = useMemo(() => generateEngagementHistory(chartPeriod), [chartPeriod]);
-  const postPerfData    = useMemo(() => generatePostPerformance([], igMedia), [igMedia]);
+  // Only build chart data when real posts are available
+  const postPerfData = useMemo(() => igMedia.length ? generatePostPerformance([], igMedia) : [], [igMedia]);
 
   return (
     <>
@@ -82,64 +75,14 @@ export default function AnalyticsTab({
 
       {activeView === "instagram" && (
         <>
-          {/* ── Charts Section ─────────────────────────────────────── */}
-          <div className="bw-charts-section">
-            <div className="bw-charts-header">
-              <div className="bw-charts-title">Performance Overview</div>
-              <div className="bw-chart-period">
-                {[7, 30, 90].map((d) => (
-                  <button
-                    key={d}
-                    className={`bw-chart-period-btn${chartPeriod === d ? " on" : ""}`}
-                    onClick={() => setChartPeriod(d)}
-                  >
-                    {d}d
-                  </button>
-                ))}
+          {/* Post performance chart — only shown when real data is synced */}
+          {postPerfData.length > 0 && (
+            <div className="bw-charts-section" style={{ marginBottom: 20 }}>
+              <div className="bw-charts-header">
+                <div className="bw-charts-title">Post Performance — Likes vs Comments</div>
               </div>
-            </div>
-            {!connected && (
-              <div className="bw-charts-mock-badge">Demo data — connect Instagram for live metrics</div>
-            )}
-
-            <div className="bw-charts-grid">
-              {/* Follower Growth */}
               <div className="bw-chart-card">
-                <div className="bw-chart-card-title">Follower Growth</div>
-                <ResponsiveContainer width="100%" height={160}>
-                  <LineChart data={followerData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--ink-2)" }} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-2)" }} tickLine={false} axisLine={false} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Line type="monotone" dataKey="followers" stroke={CHART_COLORS.gold} strokeWidth={2} dot={false} name="Followers" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Engagement Rate */}
-              <div className="bw-chart-card">
-                <div className="bw-chart-card-title">Engagement Rate %</div>
-                <ResponsiveContainer width="100%" height={160}>
-                  <LineChart data={engagementData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--ink-2)" }} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 10, fill: "var(--ink-2)" }} tickLine={false} axisLine={false} domain={[0, 12]} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Line type="monotone" dataKey="rate" stroke={CHART_COLORS.blue} strokeWidth={2} dot={false} name="Eng Rate %" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Post Performance Bars */}
-            {postPerfData.length > 0 && (
-              <div className="bw-chart-card" style={{ marginTop: 16 }}>
-                <div className="bw-chart-card-title">
-                  Post Performance — Likes
-                  {igMedia.length > 0 && <span className="bw-charts-live-badge">live</span>}
-                </div>
-                <ResponsiveContainer width="100%" height={180}>
+                <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={postPerfData.slice(0, 12)} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--ink-2)" }} tickLine={false} />
@@ -150,10 +93,10 @@ export default function AnalyticsTab({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* ── Existing Instagram analytics section ──────────────── */}
+          {/* ── Instagram analytics section ───────────────────────── */}
           {!connected ? (
             <div className="bw-ig-setup">
               <h3>Live Instagram Analytics</h3>

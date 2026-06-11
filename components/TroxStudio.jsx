@@ -20,7 +20,6 @@ import CursorEffect from "./CursorEffect";
 import CommandCenterTab from "./tabs/CommandCenterTab";
 import BrandBrainTab from "./tabs/BrandBrainTab";
 import InboxTab from "./tabs/InboxTab";
-import DemoModeBanner from "./DemoModeBanner";
 import { loadBrandBrain, saveBrandBrainToStorage, brandBrainCtx, shortBrainCtx, addInsightToMemory, computePillarMix, upcomingMoments as getBrainMoments, getHashtagsForPillar } from "../lib/brand-brain";
 import { MockProvider } from "../lib/providers/mock-publishing";
 
@@ -1064,7 +1063,6 @@ Plain text. No markdown symbols. Every claim must be grounded in the data provid
           </div>
         ) : (
           <>
-            <DemoModeBanner settings={{ groqKey, claudeKey, igSessionId, ayrshareKey: "" }} />
             <div className="bw-marquee">
               <div className="bw-marquee-track">
                 {MARQUEE.map((item, i) => (

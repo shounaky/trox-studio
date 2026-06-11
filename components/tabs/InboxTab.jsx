@@ -93,7 +93,10 @@ export default function InboxTab({
         {/* Message list */}
         <div className="bw-inbox-list">
           {filtered.length === 0 && !inboxLoading && (
-            <div className="bw-empty">No messages in this filter.</div>
+            <div className="bw-empty">
+              <div className="big">No messages yet</div>
+              Comments from your Instagram posts will appear here once synced. Go to Analytics → Sync posts first.
+            </div>
           )}
           {filtered.map((m) => {
             const meta = LABEL_META[m.label] || LABEL_META.general;
